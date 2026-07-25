@@ -1,0 +1,89 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { formatInr, maskPhone } from "@/lib/api";
+import { getShopSettings } from "@/lib/shop-settings";
+import { upiPayLink } from "@/lib/upi";
+
+export const dynamic = "force-dynamic";
+
+export default async function PayInvoicePage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  const [inv, shop] = await Promise.all([
+    prisma.invoice.findFirst({
+      where: {
+        cancelledAt: null,
+        OR: [{ publicToken: token }, { number: token }],
+      },
+    }),
+    getShopSettings(),
+  ]);
+  if (!inv) notFound();
+
+  const upi = shop.upiId
+    ? upiPayLink({
+        upiId: shop.upiId,
+        payeeName: shop.name || "Shop",
+        amount: inv.grandTotal,
+        note: inv.number,
+      })
+    : "";
+
+  return (
+    <div className="min-h-screen bg-atmosphere px-4 py-10">
+      <div className="mx-auto max-w-md rounded-3xl border border-border bg-surface p-8 text-center shadow-sm">
+        <p className="font-[family-name:var(--font-display)] text-2xl font-semibold text-navy">
+          {shop.name || "Pay invoice"}
+        </p>
+        <p className="mt-2 text-sm text-muted">Invoice {inv.number}</p>
+        <p className="mt-1 text-sm text-muted">
+          {inv.customerName || "Customer"} ·{" "}
+          {maskPhone(inv.customerPhone || "")}
+        </p>
+
+        <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">
+          Amount to pay
+        </p>
+        <p className="mt-1 text-4xl font-bold tabular-nums text-navy">
+          {formatInr(inv.grandTotal)}
+        </p>
+
+        {upi ? (
+          <a
+            href={upi}
+            className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-amber px-6 py-3.5 text-base font-semibold text-white hover:bg-amber-bright"
+          >
+            Pay with UPI (GPay / PhonePe / Paytm)
+          </a>
+        ) : (
+          <p className="mt-8 rounded-xl bg-amber/10 px-4 py-3 text-sm text-amber">
+            UPI ID not set. Contact the shop to pay.
+          </p>
+        )}
+
+        <p className="mt-4 text-xs text-muted">
+          Opens your UPI app on mobile. On desktop, scan/pay from your phone.
+        </p>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href={`/invoice/${inv.publicToken}`}
+            className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-navy"
+          >
+            View bill
+          </Link>
+          <Link
+            href="/track-order"
+            className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-navy"
+          >
+            Track order
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

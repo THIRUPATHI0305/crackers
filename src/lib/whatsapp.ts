@@ -1,5 +1,3 @@
-import { upiPayLink } from "@/lib/upi";
-
 const APP = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 /** Normalize to digits; 10-digit Indian mobiles get 91 prefix. */
@@ -85,7 +83,7 @@ export function orderStatusWhatsApp(opts: {
   return waLink(text, opts.shopWhatsapp);
 }
 
-/** Admin Billing / Invoices → customer: tax invoice + order + UPI pay link */
+/** Admin Billing / Invoices → customer: tax invoice + order + pay page link */
 export function invoiceWhatsApp(opts: {
   name: string;
   invoiceNumber: string;
@@ -99,31 +97,27 @@ export function invoiceWhatsApp(opts: {
   orderNumber?: string;
   enquiryNumber?: string;
 }) {
-  const url = `${APP}/invoice/${opts.token}`;
+  const billUrl = `${APP}/invoice/${opts.token}`;
+  const payUrl = `${APP}/pay/${opts.token}`;
+  const trackUrl = `${APP}/track-order`;
   const amount = Math.round(opts.total);
-  let text = `Hello ${opts.name},\n\nTax invoice from ${opts.shopName}.\n\nInvoice: ${opts.invoiceNumber}\nAmount: ₹${amount}`;
+
+  // WhatsApp cannot hide URLs behind custom HTML text — use short https
+  // links with clear labels (no raw upi:// in the chat).
+  let text = `Hello ${opts.name},\n\nTax invoice from *${opts.shopName}*.\n\nInvoice: ${opts.invoiceNumber}\nAmount: ₹${amount}`;
 
   if (opts.orderNumber) {
     text += `\nOrder: ${opts.orderNumber}`;
   }
 
-  text += `\n\nView / download bill:\n${url}`;
+  text += `\n\n📄 *View / download bill*\n${billUrl}`;
 
   if (opts.orderNumber) {
-    text += `\n\nTrack order:\n${APP}/track-order`;
+    text += `\n\n📦 *Track order*\n${trackUrl}`;
   }
 
-  const upi = opts.upiId
-    ? upiPayLink({
-        upiId: opts.upiId,
-        payeeName: opts.shopName,
-        amount: opts.total,
-        note: opts.invoiceNumber,
-      })
-    : "";
-
-  if (upi) {
-    text += `\n\nPay via UPI (GPay / PhonePe / Paytm):\n${upi}`;
+  if (opts.upiId) {
+    text += `\n\n💳 *Pay via UPI* (GPay / PhonePe / Paytm)\nTap to open pay page:\n${payUrl}`;
   }
 
   text += `\n\nThank you — ${opts.shopName}`;

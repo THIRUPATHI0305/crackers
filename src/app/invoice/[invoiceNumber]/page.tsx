@@ -146,6 +146,14 @@ export default async function PublicInvoicePage({
         </div>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {shop.upiId ? (
+            <Link
+              href={`/pay/${inv.publicToken}`}
+              className="rounded-full bg-amber px-5 py-2.5 text-sm font-semibold text-white"
+            >
+              Pay with UPI
+            </Link>
+          ) : null}
           {normalizeWaDigits(shop.whatsapp) ? (
             <a
               href={`https://wa.me/${normalizeWaDigits(shop.whatsapp)}`}
