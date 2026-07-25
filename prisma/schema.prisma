@@ -1,0 +1,350 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String?   @unique
+  passwordHash String
+  role         String    @default("ADMIN") // ADMIN | CASHIER
+  isActive     Boolean   @default(true)
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  auditLogs    AuditLog[]
+  invoices     Invoice[] @relation("CashierInvoices")
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  nameEn      String
+  nameTa      String?
+  slug        String    @unique
+  taglineEn   String?
+  taglineTa   String?
+  saleLabel   String?
+  accent      String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Category {
+  id           String    @id @default(cuid())
+  nameEn       String
+  nameTa       String?
+  slug         String    @unique
+  description  String?
+  imageUrl     String?
+  productCount Int       @default(0)
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  products     Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Product {
+  id            String         @id @default(cuid())
+  code          String         @unique
+  slug          String         @unique
+  nameEn        String
+  nameTa        String?
+  descriptionEn String?
+  descriptionTa String?
+  safetyNoteEn  String?
+  safetyNoteTa  String?
+  categoryId    String
+  brandId       String?
+  originalPrice Float
+  offerPrice    Float
+  stock         Int            @default(0)
+  minStock      Int            @default(10)
+  isActive      Boolean        @default(true)
+  isFeatured    Boolean        @default(false)
+  isBestSeller  Boolean        @default(false)
+  isBrandedSale Boolean        @default(false)
+  imageUrl      String?
+  youtubeUrl    String?
+  youtubeVideoId String?
+  showVideoOnCard Boolean      @default(true)
+  showVideoOnDetails Boolean   @default(true)
+  category      Category       @relation(fields: [categoryId], references: [id])
+  brand         Brand?         @relation(fields: [brandId], references: [id])
+  enquiryItems  EnquiryItem[]
+  orderItems    OrderItem[]
+  invoiceItems  InvoiceItem[]
+  stockTxns     StockTransaction[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Offer {
+  id            String   @id @default(cuid())
+  title         String
+  subtitle      String?
+  type          String
+  discountLabel String?
+  percentOff    Float?
+  fixedOff      Float?
+  /** Category ids for CATEGORY offers (JSON string array) */
+  categoryIds   Json?
+  /** Product ids for COMBO offers (JSON string array) */
+  productIds    Json?
+  startAt       DateTime
+  endAt         DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String?
+  phone     String   @unique
+  /** Bound 1:1 with phone — a number cannot use multiple emails. */
+  email     String?  @unique
+  whatsapp  String?
+  city      String?
+  area      String?
+  pincode   String?
+  address   String?
+  language  String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  enquiries Enquiry[]
+  orders    Order[]
+  invoices  Invoice[]
+  loyalty   LoyaltyAccount?
+}
+
+model Enquiry {
+  id               String        @id @default(cuid())
+  number           String        @unique
+  customerId       String
+  status           String        @default("NEW")
+  note             String?
+  preferredContact String?
+  estimatedAmount  Float         @default(0)
+  /** Points redeemed on online enquiry (₹1 ≈ 1 pt) */
+  loyaltyRedeem    Float         @default(0)
+  internalNote     String?
+  clientRequestId  String?       @unique
+  customer         Customer      @relation(fields: [customerId], references: [id])
+  items            EnquiryItem[]
+  order            Order?
+  invoice          Invoice?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model EnquiryItem {
+  id        String  @id @default(cuid())
+  enquiryId String
+  productId String
+  quantity  Int
+  unitPrice Float
+  enquiry   Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id                  String               @id @default(cuid())
+  number              String               @unique
+  enquiryId           String?              @unique
+  customerId          String
+  status              String               @default("ENQUIRY_RECEIVED")
+  amount              Float
+  eta                 DateTime?
+  customerNote        String?
+  internalNote        String?
+  deliveredAt         DateTime?
+  customerConfirmedAt DateTime?
+  customer            Customer             @relation(fields: [customerId], references: [id])
+  enquiry             Enquiry?             @relation(fields: [enquiryId], references: [id])
+  items               OrderItem[]
+  history             OrderStatusHistory[]
+  proofs              OrderProofImage[]
+  feedback            Feedback?
+  invoice             Invoice?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Float
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String
+  message   String?
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderProofImage {
+  id        String   @id @default(cuid())
+  orderId   String
+  url       String
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  number          String        @unique
+  publicToken     String        @unique
+  idempotencyKey  String?       @unique
+  customerId      String?
+  customerName    String?
+  customerPhone   String?
+  /** Linked enquiry when billed from Admin → Enquiries → Billing */
+  enquiryId       String?       @unique
+  /** Linked order (created on Convert or auto on invoice from enquiry) */
+  orderId         String?       @unique
+  subtotal        Float
+  billDiscount    Float         @default(0)
+  loyaltyRedeem   Float         @default(0)
+  grandTotal      Float
+  paidAmount      Float
+  balanceAmount   Float
+  paymentMethod   String
+  pointsEarned    Int           @default(0)
+  cashierId       String
+  cancelledAt     DateTime?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  cashier         AdminUser     @relation("CashierInvoices", fields: [cashierId], references: [id])
+  enquiry         Enquiry?      @relation(fields: [enquiryId], references: [id])
+  order           Order?        @relation(fields: [orderId], references: [id])
+  items           InvoiceItem[]
+  createdAt       DateTime      @default(now())
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoiceId String
+  productId String
+  name      String
+  quantity  Int
+  unitPrice Float
+  lineTotal Float
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model StockTransaction {
+  id        String   @id @default(cuid())
+  productId String
+  delta     Int
+  reason    String
+  note      String?
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model LoyaltyAccount {
+  id              String                @id @default(cuid())
+  customerId      String                @unique
+  phone           String                @unique
+  availablePoints Int                   @default(0)
+  earnedPoints    Int                   @default(0)
+  redeemedPoints  Int                   @default(0)
+  expiresAt       DateTime?
+  customer        Customer              @relation(fields: [customerId], references: [id])
+  transactions    LoyaltyTransaction[]
+}
+
+model LoyaltyTransaction {
+  id        String         @id @default(cuid())
+  accountId String
+  type      String
+  points    Int
+  note      String?
+  createdAt DateTime       @default(now())
+  account   LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  id                  String   @id @default(cuid())
+  orderId             String   @unique
+  rating              Int
+  productQuality      Int
+  packingQuality      Int
+  staffService        Int
+  deliveryExperience  Int
+  comment             String?
+  allowPublicDisplay  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Setting {
+  key   String @id
+  value String // JSON string
+}
+
+model OtpChallenge {
+  id            String    @id @default(cuid())
+  purpose       String
+  phone         String
+  /** Email OTP destination — must match phone’s bound email. */
+  email         String?
+  codeHash      String
+  /** AuthKey 2FA LogID (when SMS OTP is delivered by AuthKey). */
+  providerLogId String?
+  provider      String? // authkey | fast2sms | email | webhook | null (local)
+  attempts      Int       @default(0)
+  maxAttempts   Int       @default(5)
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  ip            String?
+  createdAt     DateTime  @default(now())
+
+  @@index([phone, purpose])
+  @@index([email, purpose])
+  @@index([expiresAt])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([phone])
+  @@index([email])
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  adminId    String?
+  action     String
+  entityType String
+  entityId   String?
+  ip         String?
+  meta       String?
+  createdAt  DateTime   @default(now())
+  admin      AdminUser? @relation(fields: [adminId], references: [id])
+}
