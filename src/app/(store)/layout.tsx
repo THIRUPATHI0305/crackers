@@ -8,6 +8,9 @@ import { ShopProvider } from "@/lib/shop-context";
 import { getOffers } from "@/lib/catalog";
 import { getShopSettings } from "@/lib/shop-settings";
 
+/** Storefront always reads live SQLite/Postgres — never static-prerender at build. */
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const shop = await getShopSettings();
   return {

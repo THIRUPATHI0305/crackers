@@ -1,29 +1,52 @@
 import { prisma } from "@/lib/prisma";
 
+function isDbUnavailable(e: unknown) {
+  const code =
+    e && typeof e === "object" && "code" in e
+      ? String((e as { code?: string }).code)
+      : "";
+  return code === "P2021" || code === "P1003" || code === "P1017" || code === "P1001";
+}
+
 export async function getCategories() {
-  return prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  try {
+    return await prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+  } catch (e) {
+    if (isDbUnavailable(e)) return [];
+    throw e;
+  }
 }
 
 export async function getBrands() {
-  return prisma.brand.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  try {
+    return await prisma.brand.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+  } catch (e) {
+    if (isDbUnavailable(e)) return [];
+    throw e;
+  }
 }
 
 export async function getBrandBySlug(slug: string) {
-  return prisma.brand.findFirst({
-    where: { slug, isActive: true },
-    include: {
-      products: {
-        where: { isActive: true },
-        include: { category: true, brand: true },
+  try {
+    return await prisma.brand.findFirst({
+      where: { slug, isActive: true },
+      include: {
+        products: {
+          where: { isActive: true },
+          include: { category: true, brand: true },
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    if (isDbUnavailable(e)) return null;
+    throw e;
+  }
 }
 
 export async function getProducts(filters?: {
@@ -45,63 +68,78 @@ export async function getProducts(filters?: {
     .filter(Boolean) as string[];
   const q = filters?.q?.trim();
 
-  return prisma.product.findMany({
-    where: {
-      isActive: true,
-      ...(ids.length > 0 ? { id: { in: ids } } : {}),
-      ...(filters?.featured ? { isFeatured: true } : {}),
-      ...(filters?.bestSeller ? { isBestSeller: true } : {}),
-      ...(filters?.brandedSale ? { isBrandedSale: true } : {}),
-      ...(brands.length === 1
-        ? { brand: { slug: brands[0] } }
-        : brands.length > 1
-          ? { brand: { slug: { in: brands } } }
-          : {}),
-      ...(categories.length === 1
-        ? { category: { slug: categories[0] } }
-        : categories.length > 1
-          ? { category: { slug: { in: categories } } }
-          : {}),
-      ...(q
-        ? {
-            OR: [
-              { nameEn: { contains: q } },
-              { nameTa: { contains: q } },
-              { code: { contains: q } },
-              { descriptionEn: { contains: q } },
-              {
-                category: {
-                  nameEn: { contains: q },
+  try {
+    return await prisma.product.findMany({
+      where: {
+        isActive: true,
+        ...(ids.length > 0 ? { id: { in: ids } } : {}),
+        ...(filters?.featured ? { isFeatured: true } : {}),
+        ...(filters?.bestSeller ? { isBestSeller: true } : {}),
+        ...(filters?.brandedSale ? { isBrandedSale: true } : {}),
+        ...(brands.length === 1
+          ? { brand: { slug: brands[0] } }
+          : brands.length > 1
+            ? { brand: { slug: { in: brands } } }
+            : {}),
+        ...(categories.length === 1
+          ? { category: { slug: categories[0] } }
+          : categories.length > 1
+            ? { category: { slug: { in: categories } } }
+            : {}),
+        ...(q
+          ? {
+              OR: [
+                { nameEn: { contains: q } },
+                { nameTa: { contains: q } },
+                { code: { contains: q } },
+                { descriptionEn: { contains: q } },
+                {
+                  category: {
+                    nameEn: { contains: q },
+                  },
                 },
-              },
-              {
-                brand: {
-                  nameEn: { contains: q },
+                {
+                  brand: {
+                    nameEn: { contains: q },
+                  },
                 },
-              },
-            ],
-          }
-        : {}),
-    },
-    include: { category: true, brand: true },
-    orderBy: { nameEn: "asc" },
-  });
+              ],
+            }
+          : {}),
+      },
+      include: { category: true, brand: true },
+      orderBy: { nameEn: "asc" },
+    });
+  } catch (e) {
+    if (isDbUnavailable(e)) return [];
+    throw e;
+  }
 }
 
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findFirst({
-    where: { slug, isActive: true },
-    include: { category: true, brand: true },
-  });
+  try {
+    return await prisma.product.findFirst({
+      where: { slug, isActive: true },
+      include: { category: true, brand: true },
+    });
+  } catch (e) {
+    if (isDbUnavailable(e)) return null;
+    throw e;
+  }
 }
 
 export async function getOffers() {
-  const now = new Date();
-  const offers = await prisma.offer.findMany({
-    where: { isActive: true, startAt: { lte: now }, endAt: { gte: now } },
-    orderBy: { startAt: "desc" },
-  });
-  return enrichOffers(offers);
+  try {
+    const now = new Date();
+    const offers = await prisma.offer.findMany({
+      where: { isActive: true, startAt: { lte: now }, endAt: { gte: now } },
+      orderBy: { startAt: "desc" },
+    });
+    return enrichOffers(offers);
+  } catch (e) {
+    if (isDbUnavailable(e)) return [];
+    throw e;
+  }
 }
 
 function asIdArray(value: unknown): string[] {

@@ -5,6 +5,8 @@ import { formatInr, maskPhone } from "@/lib/api";
 import { getShopSettings } from "@/lib/shop-settings";
 import { normalizeWaDigits } from "@/lib/whatsapp";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicInvoicePage({
   params,
 }: {
