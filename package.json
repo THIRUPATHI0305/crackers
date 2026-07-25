@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:sync-remote": "tsx scripts/sync-catalog-to-remote.ts",
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "typecheck": "tsc --noEmit",
     "test:validation": "tsx scripts/validation-test.ts",
