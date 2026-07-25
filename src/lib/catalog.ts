@@ -89,18 +89,18 @@ export async function getProducts(filters?: {
         ...(q
           ? {
               OR: [
-                { nameEn: { contains: q } },
-                { nameTa: { contains: q } },
-                { code: { contains: q } },
-                { descriptionEn: { contains: q } },
+                { nameEn: { contains: q, mode: "insensitive" } },
+                { nameTa: { contains: q, mode: "insensitive" } },
+                { code: { contains: q, mode: "insensitive" } },
+                { descriptionEn: { contains: q, mode: "insensitive" } },
                 {
                   category: {
-                    nameEn: { contains: q },
+                    nameEn: { contains: q, mode: "insensitive" },
                   },
                 },
                 {
                   brand: {
-                    nameEn: { contains: q },
+                    nameEn: { contains: q, mode: "insensitive" },
                   },
                 },
               ],
