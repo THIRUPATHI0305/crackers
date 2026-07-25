@@ -46,6 +46,38 @@ export function readCsrfFromRequest(req: Request) {
   return { header, cookie };
 }
 
+/** Origins allowed for browser CSRF POSTs (APP_URL + Vercel deployment hosts). */
+function allowedOrigins(): Set<string> {
+  const list = new Set<string>();
+  const add = (raw?: string | null) => {
+    if (!raw) return;
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    try {
+      const withProto = /^https?:\/\//i.test(trimmed)
+        ? trimmed
+        : `https://${trimmed}`;
+      list.add(new URL(withProto).origin);
+    } catch {
+      /* ignore bad URL */
+    }
+  };
+
+  add(process.env.NEXT_PUBLIC_APP_URL);
+  add(process.env.VERCEL_URL);
+  add(process.env.VERCEL_BRANCH_URL);
+  add(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  for (const part of (process.env.ALLOWED_ORIGINS || "").split(",")) {
+    add(part);
+  }
+  // Local dev defaults
+  if (process.env.NODE_ENV !== "production") {
+    add("http://localhost:3000");
+    add("http://127.0.0.1:3000");
+  }
+  return list;
+}
+
 /** Double-submit cookie: header must match cookie and both must verify. */
 export function assertCsrf(req: Request): { ok: true } | { ok: false; reason: string } {
   const { header, cookie } = readCsrfFromRequest(req);
@@ -54,10 +86,23 @@ export function assertCsrf(req: Request): { ok: true } | { ok: false; reason: st
   if (!verifyCsrfToken(header)) return { ok: false, reason: "Invalid CSRF token" };
 
   const origin = req.headers.get("origin");
-  const app = process.env.NEXT_PUBLIC_APP_URL;
-  if (origin && app) {
+  if (origin) {
+    const allowed = allowedOrigins();
+    // If no APP_URL configured yet, fall back to same-host check via Host header
+    if (allowed.size === 0) {
+      const host = req.headers.get("host");
+      if (host) {
+        try {
+          const proto = req.headers.get("x-forwarded-proto") || "https";
+          allowed.add(new URL(`${proto}://${host}`).origin);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
     try {
-      if (new URL(origin).origin !== new URL(app).origin) {
+      const reqOrigin = new URL(origin).origin;
+      if (allowed.size > 0 && !allowed.has(reqOrigin)) {
         return { ok: false, reason: "Invalid origin" };
       }
     } catch {
