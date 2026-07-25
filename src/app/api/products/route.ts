@@ -30,9 +30,9 @@ export async function GET(req: Request) {
   if (inStock) where.stock = { gt: 0 };
   if (q) {
     where.OR = [
-      { nameEn: { contains: q, mode: "insensitive" } },
-      { code: { contains: q, mode: "insensitive" } },
-      { descriptionEn: { contains: q, mode: "insensitive" } },
+      { nameEn: { contains: q } },
+      { code: { contains: q } },
+      { descriptionEn: { contains: q } },
     ];
   }
 

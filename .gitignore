@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+vercel.env
+!.env.example
+
 
 # vercel
 .vercel
@@ -54,7 +57,9 @@ next-env.d.ts
 tmp/
 **/__pycache__/
 *.pyc
-prisma/**/*.db
-prisma/**/*.db-journal
+# local sqlite databases
+*.db
+*.db-journal
+!data/.gitkeep
 data/ocr/
 skills-lock.json

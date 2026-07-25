@@ -86,6 +86,8 @@ CREATE TABLE "Offer" (
     "discountLabel" TEXT,
     "percentOff" REAL,
     "fixedOff" REAL,
+    "categoryIds" JSONB,
+    "productIds" JSONB,
     "startAt" DATETIME NOT NULL,
     "endAt" DATETIME NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
@@ -98,6 +100,7 @@ CREATE TABLE "Customer" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT,
     "phone" TEXT NOT NULL,
+    "email" TEXT,
     "whatsapp" TEXT,
     "city" TEXT,
     "area" TEXT,
@@ -117,6 +120,7 @@ CREATE TABLE "Enquiry" (
     "note" TEXT,
     "preferredContact" TEXT,
     "estimatedAmount" REAL NOT NULL DEFAULT 0,
+    "loyaltyRedeem" REAL NOT NULL DEFAULT 0,
     "internalNote" TEXT,
     "clientRequestId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -193,6 +197,8 @@ CREATE TABLE "Invoice" (
     "customerId" TEXT,
     "customerName" TEXT,
     "customerPhone" TEXT,
+    "enquiryId" TEXT,
+    "orderId" TEXT,
     "subtotal" REAL NOT NULL,
     "billDiscount" REAL NOT NULL DEFAULT 0,
     "loyaltyRedeem" REAL NOT NULL DEFAULT 0,
@@ -205,7 +211,9 @@ CREATE TABLE "Invoice" (
     "cancelledAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Invoice_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "Invoice_cashierId_fkey" FOREIGN KEY ("cashierId") REFERENCES "AdminUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "Invoice_cashierId_fkey" FOREIGN KEY ("cashierId") REFERENCES "AdminUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Invoice_enquiryId_fkey" FOREIGN KEY ("enquiryId") REFERENCES "Enquiry" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Invoice_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -277,6 +285,33 @@ CREATE TABLE "Setting" (
 );
 
 -- CreateTable
+CREATE TABLE "OtpChallenge" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "purpose" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "email" TEXT,
+    "codeHash" TEXT NOT NULL,
+    "providerLogId" TEXT,
+    "provider" TEXT,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "maxAttempts" INTEGER NOT NULL DEFAULT 5,
+    "expiresAt" DATETIME NOT NULL,
+    "consumedAt" DATETIME,
+    "ip" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "ContactMessage" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "email" TEXT,
+    "message" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
 CREATE TABLE "AuditLog" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "adminId" TEXT,
@@ -311,6 +346,9 @@ CREATE UNIQUE INDEX "Product_slug_key" ON "Product"("slug");
 CREATE UNIQUE INDEX "Customer_phone_key" ON "Customer"("phone");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Customer_email_key" ON "Customer"("email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Enquiry_number_key" ON "Enquiry"("number");
 
 -- CreateIndex
@@ -332,6 +370,12 @@ CREATE UNIQUE INDEX "Invoice_publicToken_key" ON "Invoice"("publicToken");
 CREATE UNIQUE INDEX "Invoice_idempotencyKey_key" ON "Invoice"("idempotencyKey");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Invoice_enquiryId_key" ON "Invoice"("enquiryId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Invoice_orderId_key" ON "Invoice"("orderId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "LoyaltyAccount_customerId_key" ON "LoyaltyAccount"("customerId");
 
 -- CreateIndex
@@ -339,3 +383,21 @@ CREATE UNIQUE INDEX "LoyaltyAccount_phone_key" ON "LoyaltyAccount"("phone");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Feedback_orderId_key" ON "Feedback"("orderId");
+
+-- CreateIndex
+CREATE INDEX "OtpChallenge_phone_purpose_idx" ON "OtpChallenge"("phone", "purpose");
+
+-- CreateIndex
+CREATE INDEX "OtpChallenge_email_purpose_idx" ON "OtpChallenge"("email", "purpose");
+
+-- CreateIndex
+CREATE INDEX "OtpChallenge_expiresAt_idx" ON "OtpChallenge"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "ContactMessage_createdAt_idx" ON "ContactMessage"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "ContactMessage_phone_idx" ON "ContactMessage"("phone");
+
+-- CreateIndex
+CREATE INDEX "ContactMessage_email_idx" ON "ContactMessage"("email");

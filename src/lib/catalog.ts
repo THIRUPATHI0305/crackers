@@ -65,18 +65,18 @@ export async function getProducts(filters?: {
       ...(q
         ? {
             OR: [
-              { nameEn: { contains: q, mode: "insensitive" as const } },
-              { nameTa: { contains: q, mode: "insensitive" as const } },
-              { code: { contains: q, mode: "insensitive" as const } },
-              { descriptionEn: { contains: q, mode: "insensitive" as const } },
+              { nameEn: { contains: q } },
+              { nameTa: { contains: q } },
+              { code: { contains: q } },
+              { descriptionEn: { contains: q } },
               {
                 category: {
-                  nameEn: { contains: q, mode: "insensitive" as const },
+                  nameEn: { contains: q },
                 },
               },
               {
                 brand: {
-                  nameEn: { contains: q, mode: "insensitive" as const },
+                  nameEn: { contains: q },
                 },
               },
             ],

@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 /**
  * Bootstrap admin login only.
- * Shop profile, brands, categories, products, offers → PostgreSQL via Admin UI.
+ * Shop profile, brands, categories, products, offers → SQLite via Admin UI.
  * Never seed catalogue or marketing copy here.
  */
 async function main() {
@@ -85,7 +85,7 @@ async function main() {
 
   console.log("Seed OK. Admin:", admin.email, "password: Admin@12345");
   console.log(
-    `PostgreSQL catalogue — categories:${categories} products:${products} brands:${brands} offers:${offers}`
+    `SQLite catalogue — categories:${categories} products:${products} brands:${brands} offers:${offers}`
   );
   console.log("Shop / brands / products: manage in Admin UI only.");
 }

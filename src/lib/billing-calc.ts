@@ -96,32 +96,32 @@ export function computeBillingTotals(opts: {
     if (type === "COMBO") {
       const ids = offer.productIds || [];
       if (ids.length < 2) continue;
-      // Combo only when every listed product is in the cart with the same qty.
-      // Unequal qty (e.g. 1 + 2) = not a combo — no extra promo.
+      // Complete sets only: min qty across all combo products.
+      // Extra units of one product (without matching partners) get no combo %.
+      // Example: Siren×3 + Water Queen×3 → 3 sets; Siren×1 + Water Queen×2 → 1 set.
       const qtys = ids.map(
         (id) => items.find((i) => i.productId === id)?.quantity ?? 0
       );
-      if (qtys.some((q) => q < 1)) continue;
-      const setQty = qtys[0]!;
-      if (!qtys.every((q) => q === setQty)) continue;
+      const sets = Math.min(...qtys);
+      if (sets < 1) continue;
 
       const byId = new Map(items.map((i) => [i.productId, i]));
       const base = ids.reduce((s, id) => {
         const item = byId.get(id);
-        return item ? s + item.offerPrice * setQty : s;
+        return item ? s + item.offerPrice * sets : s;
       }, 0);
       if (base <= 0) continue;
       if (pct > 0) {
         const extra = Math.round((base * pct) / 100);
         promoDiscount += extra;
         appliedOffers.push(
-          `${offer.title} (−${pct}% × ${setQty} set${setQty > 1 ? "s" : ""})`
+          `${offer.title} (−${pct}% × ${sets} set${sets > 1 ? "s" : ""})`
         );
       } else if (fixed > 0) {
-        const extra = Math.min(fixed * setQty, base);
+        const extra = Math.min(fixed * sets, base);
         promoDiscount += extra;
         appliedOffers.push(
-          `${offer.title} (−₹${fixed} × ${setQty} set${setQty > 1 ? "s" : ""})`
+          `${offer.title} (−₹${fixed} × ${sets} set${sets > 1 ? "s" : ""})`
         );
       }
       continue;

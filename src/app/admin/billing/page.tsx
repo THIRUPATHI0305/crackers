@@ -763,38 +763,26 @@ export default function BillingPage() {
           {/* Totals + actions */}
           <div className="shrink-0 border-t border-amber/25 bg-amber/5 px-3 py-3 sm:px-4">
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between text-muted">
-                <span>MRP total</span>
-                <span className="font-semibold tabular-nums text-navy">
-                  {formatInr(totals.mrpSubtotal)}
-                </span>
-              </div>
-              {totals.productOfferDiscount > 0 && (
-                <div className="flex justify-between text-success">
-                  <span>
-                    {totals.mrpSubtotal > 0
-                      ? `${Math.round(
-                          (totals.productOfferDiscount / totals.mrpSubtotal) *
-                            100
-                        )}% discount`
-                      : "Discount"}
+              {totals.mrpSubtotal > totals.grandTotal + totals.loyaltyRedeem && (
+                <div className="flex justify-between text-muted">
+                  <span>MRP</span>
+                  <span className="font-semibold tabular-nums line-through text-navy">
+                    {formatInr(totals.mrpSubtotal)}
                   </span>
-                  <span className="font-semibold tabular-nums">
-                    −{formatInr(totals.productOfferDiscount)}
+                </div>
+              )}
+              {totals.productOfferDiscount > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Festival / list price</span>
+                  <span className="font-semibold tabular-nums text-navy">
+                    {formatInr(totals.subtotal)}
                   </span>
                 </div>
               )}
               {totals.promoDiscount > 0 && (
-                <div className="flex justify-between text-success">
-                  <span>
-                    {totals.appliedOffers[0]?.startsWith("COMBO") ||
-                    totals.appliedOffers.some((a) =>
-                      a.toLowerCase().includes("combo")
-                    )
-                      ? "Combo offer"
-                      : "Promo"}
-                  </span>
-                  <span className="font-semibold tabular-nums">
+                <div className="flex justify-between font-semibold text-success">
+                  <span>Promo offers</span>
+                  <span className="tabular-nums">
                     −{formatInr(totals.promoDiscount)}
                   </span>
                 </div>
@@ -805,6 +793,14 @@ export default function BillingPage() {
                     <li key={label}>✓ {label}</li>
                   ))}
                 </ul>
+              )}
+              {totals.offerDiscount > 0 && (
+                <div className="flex justify-between font-semibold text-success">
+                  <span>You save</span>
+                  <span className="tabular-nums">
+                    −{formatInr(totals.offerDiscount)}
+                  </span>
+                </div>
               )}
               {totals.loyaltyRedeem > 0 && (
                 <div className="flex justify-between text-muted">
@@ -821,12 +817,21 @@ export default function BillingPage() {
                     {formatInr(totals.grandTotal)}
                   </p>
                 </div>
-                <p className="pb-1 text-xs font-semibold text-success">
-                  {billPaid ? `+${totals.pointsEarned} pts` : "0 pts"}
-                </p>
+                <div className="flex flex-col items-end gap-1 pb-1">
+                  {totals.offerDiscount > 0 && totals.mrpSubtotal > 0 && (
+                    <span className="rounded-md bg-danger px-2 py-0.5 text-xs font-bold text-white">
+                      {Math.round(
+                        (totals.offerDiscount / totals.mrpSubtotal) * 100
+                      )}
+                      % OFF
+                    </span>
+                  )}
+                  <p className="text-xs font-semibold text-success">
+                    {billPaid ? `+${totals.pointsEarned} pts` : "0 pts"}
+                  </p>
+                </div>
               </div>
             </div>
-
             <div className="mt-3 grid grid-cols-3 gap-2">
               <button
                 type="button"
