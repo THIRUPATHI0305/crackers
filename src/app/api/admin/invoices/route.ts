@@ -5,6 +5,7 @@ import { apiError, apiOk, fromZod } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { billingSchema } from "@/lib/validation";
 import { invoiceWhatsApp } from "@/lib/whatsapp";
+import { scheduleShopNewInvoice } from "@/lib/shop-notify";
 import { computeBillingTotals, type BillingOffer } from "@/lib/billing-calc";
 import { getShopSettings } from "@/lib/shop-settings";
 import type { Prisma } from "@prisma/client";
@@ -333,7 +334,11 @@ export async function POST(req: Request) {
         await tx.invoiceItem.deleteMany({ where: { invoiceId: existing.id } });
 
         const paidAmount =
-          body.paidAmount > 0 ? body.paidAmount : totals.grandTotal;
+          body.awardPoints === false
+            ? Math.max(0, Number(body.paidAmount) || 0)
+            : body.paidAmount > 0
+              ? body.paidAmount
+              : totals.grandTotal;
 
         const invoice = await tx.invoice.update({
           where: { id: existing.id },
@@ -560,7 +565,11 @@ export async function POST(req: Request) {
       const number = `INV-${year}-${String(count + 1).padStart(4, "0")}`;
       const publicToken = randomBytes(16).toString("hex");
       const paidAmount =
-        body.paidAmount > 0 ? body.paidAmount : totals.grandTotal;
+        body.awardPoints === false
+          ? Math.max(0, Number(body.paidAmount) || 0)
+          : body.paidAmount > 0
+            ? body.paidAmount
+            : totals.grandTotal;
 
       /** Paid → earn pts for next bill; unpaid / already credited enquiry → 0 */
       let pointsEarned =
@@ -716,6 +725,16 @@ export async function POST(req: Request) {
       number: result.invoice.number,
       total: result.invoice.grandTotal,
       order: result.orderNumber,
+    });
+
+    scheduleShopNewInvoice({
+      invoiceNumber: result.invoice.number,
+      orderNumber: result.orderNumber,
+      enquiryNumber: result.enquiryNumber,
+      name: result.invoice.customerName || "Customer",
+      phone: result.invoice.customerPhone,
+      grandTotal: result.invoice.grandTotal,
+      publicToken: result.invoice.publicToken,
     });
 
     const shop = await getShopSettings();

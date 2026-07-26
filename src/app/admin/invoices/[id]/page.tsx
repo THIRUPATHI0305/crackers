@@ -21,6 +21,7 @@ type Invoice = {
   paidAmount: number;
   balanceAmount: number;
   createdAt: string;
+  payOpen?: boolean;
   order: { id: string; number: string } | null;
   enquiry: { id: string; number: string } | null;
   items: {
@@ -45,6 +46,7 @@ export default function AdminInvoiceDetailPage({
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [paymentBusy, setPaymentBusy] = useState(false);
   const [printMode, setPrintMode] = useState<"a4" | "thermal" | null>(null);
 
   useEffect(() => {
@@ -119,6 +121,58 @@ export default function AdminInvoiceDetailPage({
     }
   }
 
+  async function setPaymentStatus(action: "mark_paid" | "reopen_pay") {
+    if (!invoice) return;
+    if (
+      action === "mark_paid" &&
+      !confirm(
+        `Mark ${invoice.number} as payment received?\n\nThis closes the customer pay link.`
+      )
+    ) {
+      return;
+    }
+    if (
+      action === "reopen_pay" &&
+      !confirm(
+        `Reopen pay link for ${invoice.number}?\n\nBalance will show as unpaid again.`
+      )
+    ) {
+      return;
+    }
+    setPaymentBusy(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/admin/invoices/${invoice.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          paymentMethod:
+            action === "mark_paid"
+              ? invoice.paymentMethod === "CASH" ||
+                invoice.paymentMethod === "CARD"
+                ? invoice.paymentMethod
+                : "UPI"
+              : undefined,
+          awardPoints: true,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setActionError(data?.error?.message || "Could not update payment");
+        return;
+      }
+      if (data.invoice) setInvoice(data.invoice);
+    } finally {
+      setPaymentBusy(false);
+    }
+  }
+
+  const payOpen =
+    invoice.payOpen ??
+    (invoice.balanceAmount > 0.009 &&
+      invoice.paidAmount + 0.009 < invoice.grandTotal);
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 print:max-w-none">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
@@ -169,6 +223,25 @@ export default function AdminInvoiceDetailPage({
           >
             Online link
           </Link>
+          {payOpen ? (
+            <button
+              type="button"
+              onClick={() => setPaymentStatus("mark_paid")}
+              disabled={paymentBusy}
+              className="rounded-full border border-success/40 bg-success/15 px-4 py-2 text-sm font-semibold text-success disabled:opacity-50"
+            >
+              {paymentBusy ? "Saving…" : "Payment received"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPaymentStatus("reopen_pay")}
+              disabled={paymentBusy}
+              className="rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-navy disabled:opacity-50"
+            >
+              {paymentBusy ? "Saving…" : "Reopen pay link"}
+            </button>
+          )}
           <button
             type="button"
             onClick={deleteInvoice}
@@ -288,6 +361,13 @@ export default function AdminInvoiceDetailPage({
               {formatInr(invoice.balanceAmount)}
             </span>
           </div>
+          <p className="pt-2 text-xs font-semibold print:hidden">
+            {payOpen ? (
+              <span className="text-amber">Pay link open — waiting for payment</span>
+            ) : (
+              <span className="text-success">Pay link closed — payment received</span>
+            )}
+          </p>
           <p className="pt-3 text-xs text-muted print:text-black">
             Cashier: {invoice.cashier.username || invoice.cashier.email}
           </p>

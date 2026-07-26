@@ -341,7 +341,7 @@ export default function BillingPage() {
           discountValue: 0,
           loyaltyRedeem: loyaltyMode === "redeem" ? totals.loyaltyRedeem : 0,
           autoLoyalty: loyaltyMode === "redeem",
-          paidAmount: totals.grandTotal,
+          paidAmount: billPaid ? totals.grandTotal : 0,
           awardPoints: billPaid,
           enquiryId: editingInvoiceId ? undefined : enquiryId || undefined,
           invoiceId: editingInvoiceId || undefined,

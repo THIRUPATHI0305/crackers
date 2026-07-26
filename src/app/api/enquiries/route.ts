@@ -15,6 +15,7 @@ import {
 } from "@/lib/enquiry-min";
 import { computeBillingTotals } from "@/lib/billing-calc";
 import { Prisma } from "@prisma/client";
+import { scheduleShopNewEnquiry } from "@/lib/shop-notify";
 
 function asIdArray(value: Prisma.JsonValue | null): string[] {
   if (!Array.isArray(value)) return [];
@@ -295,6 +296,16 @@ export async function POST(req: Request) {
       loyalty.enabled && loyalty.pointsPerHundred > 0
         ? Math.floor((estimated / 100) * loyalty.pointsPerHundred)
         : 0;
+
+    // Email after response — don't block customer on slow Gmail SMTP
+    scheduleShopNewEnquiry({
+      enquiryNumber: enquiry.number,
+      name: body.name,
+      phone: body.phone,
+      email: body.email,
+      city: body.city,
+      estimatedAmount: estimated,
+    });
 
     return apiOk(
       {

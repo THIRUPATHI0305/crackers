@@ -92,14 +92,35 @@ export async function PUT(req: Request) {
     const body = statusBody.parse(await req.json());
     const current = await prisma.enquiry.findUnique({
       where: { id: body.id },
-      include: { customer: true, invoice: { select: { id: true } } },
+      include: {
+        customer: true,
+        invoice: {
+          select: {
+            id: true,
+            grandTotal: true,
+            paidAmount: true,
+            balanceAmount: true,
+          },
+        },
+      },
     });
     if (!current) return apiError("NOT_FOUND", "Enquiry not found", 404);
 
     const enquiry = await prisma.enquiry.update({
       where: { id: body.id },
       data: { status: body.status, internalNote: body.internalNote },
-      include: { customer: true, invoice: { select: { id: true } } },
+      include: {
+        customer: true,
+        invoice: {
+          select: {
+            id: true,
+            grandTotal: true,
+            paidAmount: true,
+            balanceAmount: true,
+            publicToken: true,
+          },
+        },
+      },
     });
 
     let loyaltyAward: {
@@ -118,9 +139,21 @@ export async function PUT(req: Request) {
       });
     }
 
+    /** PAID → close customer /pay link on the linked invoice */
+    if (body.status === "PAID" && enquiry.invoice) {
+      await prisma.invoice.update({
+        where: { id: enquiry.invoice.id },
+        data: {
+          paidAmount: enquiry.invoice.grandTotal,
+          balanceAmount: 0,
+        },
+      });
+    }
+
     await writeAudit(auth.user.id, "ENQUIRY_STATUS", "Enquiry", enquiry.id, {
       status: body.status,
       loyaltyAward,
+      payLinkClosed: body.status === "PAID" && Boolean(enquiry.invoice),
     });
 
     return apiOk({
@@ -132,15 +165,21 @@ export async function PUT(req: Request) {
       },
       loyaltyAward,
       message:
-        (body.status === "PAID" || body.status === "BILL_SENT") &&
-        loyaltyAward &&
-        loyaltyAward.awarded > 0
-          ? loyaltyAward.alreadyAwarded
-            ? `Already credited +${loyaltyAward.awarded} pts for next bill`
-            : `${body.status} · +${loyaltyAward.awarded} pts credited for next bill`
-          : body.status === "PAID" || body.status === "BILL_SENT"
-            ? `${body.status} · no points for this amount`
-            : `Status → ${body.status}`,
+        body.status === "PAID" && enquiry.invoice
+          ? loyaltyAward && loyaltyAward.awarded > 0
+            ? loyaltyAward.alreadyAwarded
+              ? `PAID · pay link closed · already credited +${loyaltyAward.awarded} pts`
+              : `PAID · pay link closed · +${loyaltyAward.awarded} pts for next bill`
+            : "PAID · pay link closed"
+          : (body.status === "PAID" || body.status === "BILL_SENT") &&
+              loyaltyAward &&
+              loyaltyAward.awarded > 0
+            ? loyaltyAward.alreadyAwarded
+              ? `Already credited +${loyaltyAward.awarded} pts for next bill`
+              : `${body.status} · +${loyaltyAward.awarded} pts credited for next bill`
+            : body.status === "PAID" || body.status === "BILL_SENT"
+              ? `${body.status} · no points for this amount`
+              : `Status → ${body.status}`,
     });
   } catch (e) {
     if (e instanceof ZodError) return fromZod(e);
