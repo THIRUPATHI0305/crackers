@@ -2,9 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useLocale } from "@/lib/locale";
 
-type Brand = { id: string; nameEn: string; slug: string };
-type Category = { id: string; nameEn: string; slug: string; productCount: number };
+type Brand = { id: string; nameEn: string; nameTa?: string | null; slug: string };
+type Category = {
+  id: string;
+  nameEn: string;
+  nameTa?: string | null;
+  slug: string;
+  productCount: number;
+};
 
 function FilterIcon({ className }: { className?: string }) {
   return (
@@ -58,11 +65,12 @@ function FilterLists({
   onToggleBrand: (slug: string) => void;
   onToggleCategory: (slug: string) => void;
 }) {
+  const { L, t } = useLocale();
   return (
     <div className="space-y-6">
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-muted">
-          Brands
+          {t("nav.brands")}
         </p>
         <ul className="mt-3 space-y-1">
           {brands.map((b) => {
@@ -76,7 +84,9 @@ function FilterLists({
                       : "text-muted hover:bg-surface-muted hover:text-navy"
                   }`}
                 >
-                  <span className="min-w-0 flex-1 truncate">{b.nameEn}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {L(b.nameEn, b.nameTa)}
+                  </span>
                   <input
                     type="checkbox"
                     checked={checked}
@@ -92,7 +102,7 @@ function FilterLists({
 
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-muted">
-          Categories
+          {t("home.shopByCategory")}
         </p>
         <ul className="mt-3 max-h-[min(55vh,28rem)] space-y-1 overflow-y-auto pr-1">
           {categories.map((c) => {
@@ -106,7 +116,9 @@ function FilterLists({
                       : "text-muted hover:bg-surface-muted hover:text-navy"
                   }`}
                 >
-                  <span className="min-w-0 flex-1 truncate">{c.nameEn}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {L(c.nameEn, c.nameTa)}
+                  </span>
                   <span className="shrink-0 text-xs text-muted">
                     {c.productCount}
                   </span>
@@ -142,6 +154,7 @@ export function ProductCatalogFilters({
   searchQuery?: string;
 }) {
   const router = useRouter();
+  const { L, t } = useLocale();
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -185,16 +198,22 @@ export function ProductCatalogFilters({
 
   const summary = useMemo(() => {
     const brandNames = liveBrands
-      .map((s) => brands.find((b) => b.slug === s)?.nameEn || s)
+      .map((s) => {
+        const b = brands.find((x) => x.slug === s);
+        return b ? L(b.nameEn, b.nameTa) : s;
+      })
       .filter(Boolean);
     const categoryNames = liveCategories
-      .map((s) => categories.find((c) => c.slug === s)?.nameEn || s)
+      .map((s) => {
+        const c = categories.find((x) => x.slug === s);
+        return c ? L(c.nameEn, c.nameTa) : s;
+      })
       .filter(Boolean);
     const parts = [...brandNames, ...categoryNames];
-    if (parts.length === 0) return "All products";
+    if (parts.length === 0) return t("footer.allProducts");
     if (parts.length <= 2) return parts.join(" · ");
     return `${parts.slice(0, 2).join(" · ")} +${parts.length - 2}`;
-  }, [brands, categories, liveBrands, liveCategories]);
+  }, [L, t, brands, categories, liveBrands, liveCategories]);
 
   function navigate(nextBrands: string[], nextCategories: string[]) {
     startTransition(() => {
@@ -287,7 +306,10 @@ export function ProductCatalogFilters({
                   onClick={() => removeBrand(slug)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-amber/15 px-3 py-1 text-xs font-semibold text-amber"
                 >
-                  {brands.find((b) => b.slug === slug)?.nameEn || slug}
+                  {(() => {
+                    const b = brands.find((x) => x.slug === slug);
+                    return b ? L(b.nameEn, b.nameTa) : slug;
+                  })()}
                   <span aria-hidden>×</span>
                 </button>
               ))}
@@ -298,7 +320,10 @@ export function ProductCatalogFilters({
                   onClick={() => removeCategory(slug)}
                   className="inline-flex items-center gap-1.5 rounded-full bg-navy/10 px-3 py-1 text-xs font-semibold text-navy"
                 >
-                  {categories.find((c) => c.slug === slug)?.nameEn || slug}
+                  {(() => {
+                    const c = categories.find((x) => x.slug === slug);
+                    return c ? L(c.nameEn, c.nameTa) : slug;
+                  })()}
                   <span aria-hidden>×</span>
                 </button>
               ))}

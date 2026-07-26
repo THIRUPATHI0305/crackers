@@ -1,6 +1,7 @@
 export type Category = {
   id: string;
   name: string;
+  nameTa?: string;
   slug: string;
   description: string;
   image: string;
@@ -10,8 +11,10 @@ export type Category = {
 export type Brand = {
   id: string;
   name: string;
+  nameTa?: string;
   slug: string;
   tagline: string;
+  taglineTa?: string;
   saleLabel: string;
   accent: string;
   image: string;
@@ -21,9 +24,12 @@ export type Product = {
   id: string;
   slug: string;
   name: string;
+  nameTa?: string;
   category: string;
+  categoryTa?: string;
   categorySlug: string;
   brand: string;
+  brandTa?: string;
   brandSlug: string;
   image: string;
   originalPrice: number;
@@ -34,8 +40,10 @@ export type Product = {
   brandedSale?: boolean;
   hasVideo?: boolean;
   description: string;
+  descriptionTa?: string;
   code: string;
   safetyNote: string;
+  safetyNoteTa?: string;
 };
 
 export type Offer = {

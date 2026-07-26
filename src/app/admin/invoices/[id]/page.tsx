@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatInr } from "@/lib/admin-data";
+import { billPrintCss } from "@/lib/bill-print";
 
 type Invoice = {
   id: string;
@@ -44,6 +45,7 @@ export default function AdminInvoiceDetailPage({
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [printMode, setPrintMode] = useState<"a4" | "thermal" | null>(null);
 
   useEffect(() => {
     fetch(`/api/admin/invoices/${id}`)
@@ -74,6 +76,14 @@ export default function AdminInvoiceDetailPage({
   function sendWhatsApp() {
     if (!whatsappUrl || whatsappUrl === "#") return;
     window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function printReceipt(mode: "a4" | "thermal") {
+    setPrintMode(mode);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setPrintMode(null), 400);
+    }, 100);
   }
 
   async function deleteInvoice() {
@@ -133,10 +143,17 @@ export default function AdminInvoiceDetailPage({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => printReceipt("a4")}
             className="rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-navy"
           >
-            Print
+            Print A4
+          </button>
+          <button
+            type="button"
+            onClick={() => printReceipt("thermal")}
+            className="rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-navy"
+          >
+            Thermal 55mm
           </button>
           <button
             type="button"
@@ -169,25 +186,40 @@ export default function AdminInvoiceDetailPage({
         </p>
       ) : null}
 
-      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <div
+        id="invoice-print-root"
+        className={`rounded-2xl border border-border bg-surface p-6 shadow-sm print:border-0 print:shadow-none ${
+          printMode === "thermal"
+            ? "receipt-thermal-55 font-mono"
+            : printMode === "a4"
+              ? "receipt-a4"
+              : ""
+        }`}
+      >
         <div className="flex flex-wrap justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase text-muted">Customer</p>
-            <p className="mt-1 font-bold text-navy">
+            <p className="text-xs font-semibold uppercase text-muted print:text-black">
+              Customer
+            </p>
+            <p className="receipt-title mt-1 font-bold text-navy print:text-black">
               {invoice.customerName || "Walk-in"}
             </p>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted print:text-black">
               {invoice.customerPhoneMasked || "—"}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs font-semibold uppercase text-muted">Invoice</p>
-            <p className="mt-1 font-bold text-navy">{invoice.number}</p>
-            <p className="text-sm text-muted">
+            <p className="text-xs font-semibold uppercase text-muted print:text-black">
+              Invoice
+            </p>
+            <p className="mt-1 font-bold text-navy print:text-black">
+              {invoice.number}
+            </p>
+            <p className="text-sm text-muted print:text-black">
               {new Date(invoice.createdAt).toLocaleString()}
             </p>
             {invoice.order && (
-              <p className="text-sm font-semibold text-navy">
+              <p className="text-sm font-semibold text-navy print:text-black">
                 {invoice.order.number}
               </p>
             )}
@@ -195,21 +227,25 @@ export default function AdminInvoiceDetailPage({
         </div>
 
         <table className="mt-6 w-full text-left text-sm">
-          <thead className="border-b border-border text-xs uppercase text-muted">
+          <thead className="border-b border-border text-xs uppercase text-muted print:border-black print:text-black">
             <tr>
               <th className="py-2">Item</th>
               <th className="py-2">Qty</th>
               <th className="py-2">Rate</th>
-              <th className="py-2 text-right">Amount</th>
+              <th className="py-2 text-right">Amt</th>
             </tr>
           </thead>
           <tbody>
             {invoice.items.map((it) => (
-              <tr key={it.id} className="border-b border-border/60">
-                <td className="py-2 font-medium text-navy">{it.name}</td>
-                <td className="py-2">{it.quantity}</td>
-                <td className="py-2">{formatInr(it.unitPrice)}</td>
-                <td className="py-2 text-right font-semibold">
+              <tr key={it.id} className="border-b border-border/60 print:border-black/30">
+                <td className="max-w-[28mm] break-words py-2 font-medium text-navy print:text-black">
+                  {it.name}
+                </td>
+                <td className="py-2 print:text-black">{it.quantity}</td>
+                <td className="py-2 print:text-black">
+                  {formatInr(it.unitPrice)}
+                </td>
+                <td className="py-2 text-right font-semibold print:text-black">
                   {formatInr(it.lineTotal)}
                 </td>
               </tr>
@@ -219,34 +255,48 @@ export default function AdminInvoiceDetailPage({
 
         <div className="mt-6 space-y-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted">Subtotal</span>
-            <span>{formatInr(invoice.subtotal)}</span>
+            <span className="text-muted print:text-black">Subtotal</span>
+            <span className="print:text-black">{formatInr(invoice.subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Discount</span>
-            <span>{formatInr(invoice.billDiscount)}</span>
+            <span className="text-muted print:text-black">Discount</span>
+            <span className="print:text-black">
+              {formatInr(invoice.billDiscount)}
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Loyalty</span>
-            <span>{formatInr(invoice.loyaltyRedeem)}</span>
+            <span className="text-muted print:text-black">Loyalty</span>
+            <span className="print:text-black">
+              {formatInr(invoice.loyaltyRedeem)}
+            </span>
           </div>
-          <div className="flex justify-between text-base font-bold text-navy">
+          <div className="receipt-total flex justify-between text-base font-bold text-navy print:text-black">
             <span>Grand total</span>
             <span>{formatInr(invoice.grandTotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Paid ({invoice.paymentMethod})</span>
-            <span>{formatInr(invoice.paidAmount)}</span>
+            <span className="text-muted print:text-black">
+              Paid ({invoice.paymentMethod})
+            </span>
+            <span className="print:text-black">
+              {formatInr(invoice.paidAmount)}
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Balance</span>
-            <span>{formatInr(invoice.balanceAmount)}</span>
+            <span className="text-muted print:text-black">Balance</span>
+            <span className="print:text-black">
+              {formatInr(invoice.balanceAmount)}
+            </span>
           </div>
-          <p className="pt-3 text-xs text-muted">
+          <p className="pt-3 text-xs text-muted print:text-black">
             Cashier: {invoice.cashier.username || invoice.cashier.email}
           </p>
         </div>
       </div>
+
+      <style>
+        {billPrintCss({ rootId: "invoice-print-root", mode: printMode })}
+      </style>
     </div>
   );
 }

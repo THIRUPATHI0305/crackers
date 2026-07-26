@@ -79,11 +79,13 @@ export default async function ProductsPage({
             brands={brands.map((b) => ({
               id: b.id,
               nameEn: b.nameEn,
+              nameTa: b.nameTa,
               slug: b.slug,
             }))}
             categories={categories.map((c) => ({
               id: c.id,
               nameEn: c.nameEn,
+              nameTa: c.nameTa,
               slug: c.slug,
               productCount: c.productCount,
             }))}

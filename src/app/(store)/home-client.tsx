@@ -7,6 +7,7 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { ProductCard } from "@/components/ProductCard";
 import type { Brand, Category, Offer, Product } from "@/lib/data";
 import { offerHref } from "@/lib/data";
+import { useLocale } from "@/lib/locale";
 import type { ShopSettings } from "@/lib/shop-defaults";
 import { normalizeWaDigits } from "@/lib/whatsapp";
 
@@ -35,6 +36,7 @@ export default function HomeClient({
   products,
 }: Props) {
   const featured = products.filter((p) => p.featured);
+  const { t } = useLocale();
 
   return (
     <div className="bg-atmosphere">
@@ -54,21 +56,20 @@ export default function HomeClient({
               {shop.tagline}
             </h1>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70 sm:text-base">
-              Browse offers, add to cart, confirm on WhatsApp — no account,
-              no online payment.
+              {t("home.heroSupport")}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/products"
                 className="rounded-full bg-amber px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber/30 transition hover:bg-amber-bright"
               >
-                Shop products
+                {t("home.shopProducts")}
               </Link>
               <Link
                 href="/brands"
                 className="rounded-full border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
               >
-                Browse brands
+                {t("home.browseBrands")}
               </Link>
             </div>
           </motion.div>
@@ -79,14 +80,14 @@ export default function HomeClient({
         <motion.div {...fade} className="flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-amber">
-              Limited-time
+              {t("home.limited")}
             </p>
             <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold text-navy">
-              Current festival offers
+              {t("home.currentOffers")}
             </h2>
           </div>
           <Link href="/offers" className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
-            All offers
+            {t("home.allOffers")}
           </Link>
         </motion.div>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -137,11 +138,11 @@ export default function HomeClient({
                   Brand spotlight
                 </p>
                 <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold text-navy">
-                  Shop by brand
+                  {t("home.browseBrands")}
                 </h2>
               </div>
               <Link href="/brands" className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
-                All brands
+                {t("nav.brands")}
               </Link>
             </motion.div>
             <div className="mt-8 space-y-6">
@@ -163,7 +164,7 @@ export default function HomeClient({
             Browse by type
           </p>
           <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold text-navy">
-            Popular categories
+            {t("home.shopByCategory")}
           </h2>
         </motion.div>
         <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
@@ -180,11 +181,11 @@ export default function HomeClient({
               Handpicked
             </p>
             <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold text-navy">
-              Featured products
+              {t("home.featured")}
             </h2>
           </div>
           <Link href="/products" className="text-sm font-semibold text-navy underline-offset-4 hover:underline">
-            View all
+            {t("home.viewAll")}
           </Link>
         </motion.div>
         <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">

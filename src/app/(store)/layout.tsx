@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { StickyEnquiryBar } from "@/components/StickyEnquiryBar";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
 import { EnquiryCartProvider } from "@/lib/enquiry-cart";
+import { LocaleProvider } from "@/lib/locale";
 import { ShopProvider } from "@/lib/shop-context";
 import { getOffers } from "@/lib/catalog";
 import { getShopSettings } from "@/lib/shop-settings";
@@ -37,15 +38,17 @@ export default async function StoreLayout({
 
   return (
     <ShopProvider shop={shop}>
-      <EnquiryCartProvider>
-        <div className="flex min-h-full flex-col">
-          <Header offers={headerOffers} />
-          <main className="flex-1 pb-24 md:pb-0">{children}</main>
-          <Footer />
-          <WhatsAppFab />
-          <StickyEnquiryBar />
-        </div>
-      </EnquiryCartProvider>
+      <LocaleProvider enabledLanguages={shop.languages}>
+        <EnquiryCartProvider>
+          <div className="flex min-h-full flex-col">
+            <Header offers={headerOffers} />
+            <main className="flex-1 pb-24 md:pb-0">{children}</main>
+            <Footer />
+            <WhatsAppFab />
+            <StickyEnquiryBar />
+          </div>
+        </EnquiryCartProvider>
+      </LocaleProvider>
     </ShopProvider>
   );
 }

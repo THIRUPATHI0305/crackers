@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "@/lib/locale";
 import { useShop } from "@/lib/shop-context";
 
 export function Footer() {
   const shop = useShop();
+  const { t } = useLocale();
 
   return (
     <footer className="mt-auto border-t border-border bg-navy text-white">
@@ -15,34 +17,34 @@ export function Footer() {
           </p>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/70">
             {shop.tagline
-              ? `${shop.tagline}. Enquire online, confirm on WhatsApp, track delivery with confidence.`
-              : "Enquire online, confirm on WhatsApp, track delivery with confidence."}
+              ? `${shop.tagline}. ${t("footer.blurb")}`
+              : t("footer.blurb")}
           </p>
         </div>
 
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-amber-bright">
-            Shop
+            {t("footer.shop")}
           </p>
           <ul className="mt-4 space-y-2 text-sm text-white/75">
             <li>
               <Link href="/products" className="hover:text-white">
-                All products
+                {t("footer.allProducts")}
               </Link>
             </li>
             <li>
               <Link href="/offers" className="hover:text-white">
-                Festival offers
+                {t("footer.offers")}
               </Link>
             </li>
             <li>
               <Link href="/loyalty" className="hover:text-white">
-                Loyalty points
+                {t("footer.loyalty")}
               </Link>
             </li>
             <li>
               <Link href="/track-order" className="hover:text-white">
-                Track order
+                {t("footer.track")}
               </Link>
             </li>
           </ul>
@@ -50,7 +52,7 @@ export function Footer() {
 
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-amber-bright">
-            Visit us
+            {t("footer.visit")}
           </p>
           <ul className="mt-4 space-y-2 text-sm text-white/75">
             {shop.address ? <li>{shop.address}</li> : null}
@@ -77,17 +79,14 @@ export function Footer() {
 
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-amber-bright">
-            Ready to order?
+            {t("footer.ready")}
           </p>
-          <p className="mt-4 text-sm text-white/75">
-            No account needed. Add products to cart and we confirm stock &
-            delivery on WhatsApp.
-          </p>
+          <p className="mt-4 text-sm text-white/75">{t("footer.blurb")}</p>
           <Link
             href="/enquiry"
             className="mt-5 inline-flex rounded-full bg-amber px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-bright"
           >
-            Open cart
+            {t("footer.enquire")}
           </Link>
         </div>
       </div>
@@ -95,12 +94,11 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} {shop.name || "Shop"}. All rights
-            reserved.
+            © {new Date().getFullYear()} {shop.name || "Shop"}
           </p>
           <p>
             <Link href="/admin/login" className="text-white/80 hover:text-white">
-              Admin panel
+              Admin
             </Link>
           </p>
         </div>

@@ -23,8 +23,10 @@ export default async function HomePage() {
   const brands = brandsRaw.map((b) => ({
     id: b.id,
     name: b.nameEn,
+    nameTa: b.nameTa || "",
     slug: b.slug,
     tagline: b.taglineEn || "",
+    taglineTa: b.taglineTa || "",
     saleLabel: b.saleLabel || "Brand",
     accent: b.accent || "#0f2744",
     image: b.imageUrl || "/images/product-giftbox.png",
@@ -32,6 +34,7 @@ export default async function HomePage() {
   const categories = categoriesRaw.map((c) => ({
     id: c.id,
     name: c.nameEn,
+    nameTa: c.nameTa || "",
     slug: c.slug,
     description: c.description || "",
     image: c.imageUrl || "/images/product-sparklers.png",

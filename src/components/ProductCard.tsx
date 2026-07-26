@@ -8,6 +8,7 @@ import {
   type Product,
 } from "@/lib/data";
 import { useEnquiryCart } from "@/lib/enquiry-cart";
+import { useLocale } from "@/lib/locale";
 import { QtyStepper } from "@/components/QtyStepper";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -15,13 +16,17 @@ export function ProductCard({ product }: { product: Product }) {
   const inStock = product.stock > 0;
   const { addItem, getQty, setQuantity } = useEnquiryCart();
   const qty = getQty(product.id);
+  const { t, L } = useLocale();
+  const name = L(product.name, product.nameTa);
+  const category = L(product.category, product.categoryTa);
+  const brand = L(product.brand, product.brandTa);
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(15,28,46,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-navy/20 hover:shadow-[0_12px_28px_rgba(15,39,68,0.08)]">
       <div className="relative aspect-square overflow-hidden bg-white">
         <Image
           src={product.image}
-          alt={product.name}
+          alt={name}
           fill
           className="object-contain p-2 transition duration-500 group-hover:scale-[1.03]"
           sizes="(max-width:768px) 50vw, 25vw"
@@ -36,20 +41,20 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            {product.category}
+            {category}
           </p>
-          {product.brand && product.brandSlug ? (
+          {brand && product.brandSlug ? (
             <Link
               href={`/brands/${product.brandSlug}`}
               className="rounded-full border border-navy/15 bg-navy/5 px-2 py-0.5 text-[11px] font-bold text-navy hover:bg-navy/10"
             >
-              {product.brand}
+              {brand}
             </Link>
           ) : null}
         </div>
         <h3 className="mt-1 font-[family-name:var(--font-display)] text-lg font-semibold leading-snug text-navy">
           <Link href={`/products/${product.slug}`} className="hover:underline">
-            {product.name}
+            {name}
           </Link>
         </h3>
 
@@ -67,7 +72,9 @@ export function ProductCard({ product }: { product: Product }) {
             inStock ? "text-success" : "text-danger"
           }`}
         >
-          {inStock ? `In stock · ${product.stock} left` : "Out of stock"}
+          {inStock
+            ? `${t("common.inStock")} · ${product.stock} ${t("common.left")}`
+            : t("common.outOfStock")}
         </p>
 
         <div className="mt-auto flex items-center gap-2 pt-4">
@@ -77,7 +84,7 @@ export function ProductCard({ product }: { product: Product }) {
               disabled
               className="flex-1 rounded-xl bg-surface-muted py-2.5 text-sm font-semibold text-muted"
             >
-              Out of stock
+              {t("common.outOfStock")}
             </button>
           ) : qty === 0 ? (
             <button
@@ -87,7 +94,7 @@ export function ProductCard({ product }: { product: Product }) {
                   {
                     productId: product.id,
                     slug: product.slug,
-                    name: product.name,
+                    name,
                     image: product.image,
                     price: product.offerPrice,
                     originalPrice: product.originalPrice,
@@ -99,7 +106,7 @@ export function ProductCard({ product }: { product: Product }) {
               }
               className="flex-1 rounded-xl bg-amber py-2.5 text-sm font-semibold text-white transition hover:bg-amber-bright"
             >
-              Add
+              {t("common.add")}
             </button>
           ) : (
             <QtyStepper
@@ -114,7 +121,7 @@ export function ProductCard({ product }: { product: Product }) {
             href={`/products/${product.slug}`}
             className="rounded-xl border border-border px-3 py-2.5 text-sm font-semibold text-navy transition hover:border-navy hover:bg-surface-muted"
           >
-            View
+            {t("common.view")}
           </Link>
         </div>
       </div>

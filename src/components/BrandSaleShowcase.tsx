@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -6,6 +8,7 @@ import {
   type Brand,
   type Product,
 } from "@/lib/data";
+import { useLocale } from "@/lib/locale";
 
 export function BrandSaleShowcase({
   brand,
@@ -14,6 +17,9 @@ export function BrandSaleShowcase({
   brand: Brand;
   products: Product[];
 }) {
+  const { t, L } = useLocale();
+  const brandName = L(brand.name, brand.nameTa);
+  const tagline = L(brand.tagline, brand.taglineTa);
   const top = products[0];
   const discount = top
     ? discountPercent(top.originalPrice, top.offerPrice)
@@ -25,7 +31,7 @@ export function BrandSaleShowcase({
         <div className="relative min-h-[240px] lg:min-h-[320px]">
           <Image
             src={brand.image}
-            alt={brand.name}
+            alt={brandName}
             fill
             className="object-cover"
             sizes="(max-width:1024px) 100vw, 50vw"
@@ -41,28 +47,28 @@ export function BrandSaleShowcase({
               {brand.saleLabel}
             </span>
             <h3 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold sm:text-4xl">
-              {brand.name}
+              {brandName}
             </h3>
-            <p className="mt-2 max-w-md text-sm text-white/85">{brand.tagline}</p>
+            <p className="mt-2 max-w-md text-sm text-white/85">{tagline}</p>
           </div>
         </div>
 
         <div className="flex flex-col p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-navy">
-              Products
-            </p>
+            <p className="text-sm font-bold text-navy">{t("nav.products")}</p>
             <Link
               href={`/brands/${brand.slug}`}
               className="text-sm font-semibold text-amber hover:underline"
             >
-              View brand →
+              {t("home.viewAll")} →
             </Link>
           </div>
 
           <ul className="mt-4 flex-1 space-y-3">
             {products.slice(0, 3).map((p) => {
               const off = discountPercent(p.originalPrice, p.offerPrice);
+              const name = L(p.name, p.nameTa);
+              const category = L(p.category, p.categoryTa);
               return (
                 <li key={p.id}>
                   <Link
@@ -72,7 +78,7 @@ export function BrandSaleShowcase({
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-muted">
                       <Image
                         src={p.image}
-                        alt={p.name}
+                        alt={name}
                         fill
                         className="object-cover"
                         sizes="56px"
@@ -80,9 +86,9 @@ export function BrandSaleShowcase({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-navy">
-                        {p.name}
+                        {name}
                       </p>
-                      <p className="text-xs text-muted">{p.category}</p>
+                      <p className="text-xs text-muted">{category}</p>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-sm font-bold text-navy">
                           {formatInr(p.offerPrice)}
@@ -106,8 +112,8 @@ export function BrandSaleShowcase({
             className="mt-5 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-bold text-white transition hover:opacity-95"
             style={{ backgroundColor: brand.accent }}
           >
-            Shop {brand.name} sale
-            {discount > 0 ? ` · save ${discount}%` : ""}
+            {brandName}
+            {discount > 0 ? ` · ${discount}% OFF` : ""}
           </Link>
         </div>
       </div>

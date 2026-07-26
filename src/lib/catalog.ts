@@ -228,9 +228,12 @@ export function toUiProduct(p: Awaited<ReturnType<typeof getProducts>>[number]) 
     id: p.id,
     slug: p.slug,
     name: p.nameEn,
+    nameTa: p.nameTa || "",
     category: p.category.nameEn,
+    categoryTa: p.category.nameTa || "",
     categorySlug: p.category.slug,
     brand: p.brand?.nameEn || "",
+    brandTa: p.brand?.nameTa || "",
     brandSlug: p.brand?.slug || "",
     image: p.imageUrl || "/images/product-sparklers.png",
     originalPrice: p.originalPrice,
@@ -241,7 +244,9 @@ export function toUiProduct(p: Awaited<ReturnType<typeof getProducts>>[number]) 
     brandedSale: p.isBrandedSale,
     hasVideo: Boolean(p.youtubeVideoId),
     description: p.descriptionEn || "",
+    descriptionTa: p.descriptionTa || "",
     code: p.code,
     safetyNote: p.safetyNoteEn || "",
+    safetyNoteTa: p.safetyNoteTa || "",
   };
 }

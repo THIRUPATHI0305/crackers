@@ -1,8 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { Category } from "@/lib/data";
+import { useLocale } from "@/lib/locale";
 
 export function CategoryCard({ category }: { category: Category }) {
+  const { t, L } = useLocale();
+  const name = L(category.name, category.nameTa);
+
   return (
     <Link
       href={`/products?category=${category.slug}`}
@@ -11,7 +17,7 @@ export function CategoryCard({ category }: { category: Category }) {
       <div className="relative aspect-[4/3] overflow-hidden bg-white">
         <Image
           src={category.image}
-          alt={category.name}
+          alt={name}
           fill
           className="object-contain p-2 transition duration-500 group-hover:scale-[1.04]"
           sizes="(max-width:768px) 50vw, 20vw"
@@ -19,10 +25,10 @@ export function CategoryCard({ category }: { category: Category }) {
         <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-navy/15 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-4 text-white">
           <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold">
-            {category.name}
+            {name}
           </h3>
           <p className="mt-0.5 text-xs text-white/80">
-            {category.productCount} products
+            {category.productCount} {t("home.products")}
           </p>
         </div>
       </div>

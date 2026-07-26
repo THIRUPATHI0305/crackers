@@ -4,19 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useEnquiryCart } from "@/lib/enquiry-cart";
+import { useLocale, type LocaleCode } from "@/lib/locale";
 import { useShop } from "@/lib/shop-context";
 import { normalizeWaDigits } from "@/lib/whatsapp";
 import { CartIcon } from "@/components/QtyStepper";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/products", label: "Products" },
-  { href: "/brands", label: "Brands" },
-  { href: "/offers", label: "Offers" },
-  { href: "/track-order", label: "Track Order" },
-  { href: "/loyalty", label: "Loyalty" },
-  { href: "/contact", label: "Contact" },
-];
 
 type HeaderOffer = {
   id: string;
@@ -36,6 +27,7 @@ function HeaderSearch({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const [q, setQ] = useState(searchParams.get("q") || "");
 
   useEffect(() => {
@@ -56,18 +48,18 @@ function HeaderSearch({
   return (
     <form onSubmit={onSubmit} className={className} role="search">
       <label className="relative block">
-        <span className="sr-only">Search products</span>
+        <span className="sr-only">{t("nav.search")}</span>
         <input
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search sparklers, gift boxes, rockets…"
+          placeholder={t("nav.searchPlaceholder")}
           className={inputClassName}
         />
         <button
           type="submit"
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-muted hover:text-navy"
-          aria-label="Search"
+          aria-label={t("nav.search")}
         >
           ⌕
         </button>
@@ -83,32 +75,38 @@ function offerBannerText(offer: HeaderOffer) {
   return parts.join(" · ");
 }
 
+const NAV = [
+  { href: "/", key: "nav.home" as const },
+  { href: "/products", key: "nav.products" as const },
+  { href: "/brands", key: "nav.brands" as const },
+  { href: "/offers", key: "nav.offers" as const },
+  { href: "/track-order", key: "nav.track" as const },
+  { href: "/loyalty", key: "nav.loyalty" as const },
+  { href: "/contact", key: "nav.contact" as const },
+];
+
 export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState<"EN" | "TA" | "HI">("EN");
   const [offerIndex, setOfferIndex] = useState(0);
   const { count } = useEnquiryCart();
   const shop = useShop();
+  const { locale, setLocale, t } = useLocale();
 
   const langOptions = useMemo(() => {
-    const opts: Array<"EN" | "TA" | "HI"> = [];
-    if (shop.languages.en) opts.push("EN");
-    if (shop.languages.ta) opts.push("TA");
-    if (shop.languages.hi) opts.push("HI");
-    return opts.length > 0 ? opts : (["EN"] as Array<"EN" | "TA" | "HI">);
+    const opts: Array<{ code: LocaleCode; label: string }> = [];
+    if (shop.languages.en) opts.push({ code: "en", label: "EN" });
+    if (shop.languages.ta) opts.push({ code: "ta", label: "TA" });
+    if (shop.languages.hi) opts.push({ code: "hi", label: "HI" });
+    return opts.length > 0 ? opts : [{ code: "en" as LocaleCode, label: "EN" }];
   }, [shop.languages]);
 
   useEffect(() => {
-    if (!langOptions.includes(lang)) setLang(langOptions[0]);
-  }, [lang, langOptions]);
-
-  useEffect(() => {
     if (offers.length <= 1) return;
-    const t = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       setOfferIndex((i) => (i + 1) % offers.length);
     }, 4500);
-    return () => window.clearInterval(t);
+    return () => window.clearInterval(timer);
   }, [offers.length]);
 
   const activeOffer = offers[offerIndex] || offers[0];
@@ -134,7 +132,7 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
                 href={`tel:${shop.phone.replace(/\s/g, "")}`}
                 className="hidden shrink-0 font-medium text-amber-bright sm:inline"
               >
-                Call {shop.phone}
+                {t("nav.call")} {shop.phone}
               </a>
             ) : null}
           </div>
@@ -174,19 +172,23 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
 
         <div className="ml-auto flex items-center gap-2">
           {langOptions.length > 1 ? (
-            <div className="hidden rounded-full border border-border p-0.5 text-xs font-semibold sm:flex">
+            <div
+              className="flex rounded-full border border-border p-0.5 text-xs font-semibold"
+              role="group"
+              aria-label="Language"
+            >
               {langOptions.map((l) => (
                 <button
-                  key={l}
+                  key={l.code}
                   type="button"
-                  onClick={() => setLang(l)}
+                  onClick={() => setLocale(l.code)}
                   className={`rounded-full px-2.5 py-1 transition ${
-                    lang === l
+                    locale === l.code
                       ? "bg-navy text-white"
                       : "text-muted hover:text-navy"
                   }`}
                 >
-                  {l}
+                  {l.label}
                 </button>
               ))}
             </div>
@@ -195,10 +197,10 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
           <Link
             href="/enquiry"
             className="relative inline-flex h-10 items-center gap-1.5 rounded-full bg-amber px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-bright sm:px-4"
-            aria-label={`Cart${count ? `, ${count} items` : ""}`}
+            aria-label={`${t("nav.cart")}${count ? `, ${count}` : ""}`}
           >
             <CartIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Cart</span>
+            <span className="hidden sm:inline">{t("nav.cart")}</span>
             {count > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-navy px-1 text-[10px] font-bold text-white">
                 {count > 99 ? "99+" : count}
@@ -220,7 +222,7 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
           <button
             type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border text-navy md:hidden"
-            aria-label="Open menu"
+            aria-label={t("nav.openMenu")}
             onClick={() => setOpen((v) => !v)}
           >
             {open ? "✕" : "☰"}
@@ -229,7 +231,7 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
       </div>
 
       <nav className="mx-auto hidden max-w-7xl gap-1 px-4 pb-3 md:flex">
-        {links.map((link) => {
+        {NAV.map((link) => {
           const active = pathname === link.href;
           return (
             <Link
@@ -241,7 +243,7 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
                   : "text-muted hover:bg-surface-muted hover:text-navy"
               }`}
             >
-              {link.label}
+              {t(link.key)}
             </Link>
           );
         })}
@@ -257,14 +259,14 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
             />
           </Suspense>
           <div className="flex flex-col gap-1">
-            {links.map((link) => (
+            {NAV.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-medium text-navy hover:bg-surface-muted"
               >
-                {link.label}
+                {t(link.key)}
               </Link>
             ))}
             <Link
@@ -273,7 +275,8 @@ export function Header({ offers = [] }: { offers?: HeaderOffer[] }) {
               className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-amber px-3 py-2.5 text-center text-sm font-semibold text-white"
             >
               <CartIcon className="h-4 w-4" />
-              View cart{count > 0 ? ` (${count})` : ""}
+              {t("nav.viewCart")}
+              {count > 0 ? ` (${count})` : ""}
             </Link>
           </div>
         </div>

@@ -9,6 +9,7 @@ import {
   type BillingOffer,
   type LoyaltySettings,
 } from "@/lib/billing-calc";
+import { billPrintCss } from "@/lib/bill-print";
 
 type CatalogProduct = {
   id: string;
@@ -871,15 +872,21 @@ export default function BillingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 p-4 print:static print:bg-transparent print:p-0">
           <div
             id="billing-print-root"
-            className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl bg-white shadow-xl print:max-h-none print:shadow-none ${
+            className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl bg-white shadow-xl print:max-h-none print:rounded-none print:shadow-none ${
               printMode === "thermal"
-                ? "max-w-[80mm] text-[11px]"
-                : "max-w-lg"
+                ? "receipt-thermal-55 max-w-[55mm] font-mono text-[10px] leading-snug"
+                : printMode === "a4"
+                  ? "receipt-a4 max-w-lg"
+                  : "max-w-lg"
             }`}
           >
-            <div className="space-y-4 p-6 text-navy print:p-4 print:text-black">
+            <div
+              className={`text-navy print:text-black ${
+                printMode === "thermal" ? "space-y-2 p-2" : "space-y-4 p-6"
+              }`}
+            >
               <div className="text-center">
-                <p className="text-lg font-bold">{shopName}</p>
+                <p className="receipt-title text-lg font-bold">{shopName}</p>
                 <p className="text-sm text-muted print:text-black">Tax invoice</p>
                 <p className="mt-1 font-semibold">{savedInvoice.number}</p>
                 {savedInvoice.orderNumber && (
@@ -893,7 +900,7 @@ export default function BillingPage() {
                   </p>
                 )}
               </div>
-              <div className="text-sm">
+              <div className={printMode === "thermal" ? "text-[10px]" : "text-sm"}>
                 <p>
                   <span className="text-muted print:text-black">Customer:</span>{" "}
                   {savedInvoice.customerName || "Walk-in"}
@@ -903,53 +910,51 @@ export default function BillingPage() {
                   {savedInvoice.customerPhone || "—"}
                 </p>
                 <p>
-                  <span className="text-muted print:text-black">Payment:</span>{" "}
+                  <span className="text-muted print:text-black">Pay:</span>{" "}
                   {savedInvoice.paymentMethod}
                 </p>
               </div>
-              <table className="w-full border-t border-b border-border text-sm print:border-black">
+              <table className="w-full border-t border-b border-border print:border-black">
                 <thead>
-                  <tr className="text-left text-xs uppercase text-muted print:text-black">
-                    <th className="py-2">Item</th>
-                    <th className="py-2">Qty</th>
-                    <th className="py-2 text-right">MRP</th>
+                  <tr className="text-left text-[9px] uppercase text-muted print:text-black">
+                    <th className="py-1 pr-1">Item</th>
+                    <th className="py-1">Qty</th>
+                    <th className="py-1 text-right">Amt</th>
                   </tr>
                 </thead>
                 <tbody>
                   {savedInvoice.items.map((it, idx) => (
                     <tr key={idx} className="border-t border-border/50">
-                      <td className="py-1.5">{it.name}</td>
-                      <td className="py-1.5">{it.quantity}</td>
-                      <td className="py-1.5 text-right font-semibold">
+                      <td className="max-w-[28mm] break-words py-1 pr-1">
+                        {it.name}
+                      </td>
+                      <td className="py-1 align-top">{it.quantity}</td>
+                      <td className="py-1 text-right font-semibold align-top">
                         {formatInr(it.mrpLineTotal ?? it.lineTotal)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="space-y-1 text-right text-sm">
-                <p>MRP total: {formatInr(savedInvoice.subtotal)}</p>
+              <div
+                className={`space-y-0.5 text-right ${
+                  printMode === "thermal" ? "text-[10px]" : "text-sm"
+                }`}
+              >
+                <p>MRP: {formatInr(savedInvoice.subtotal)}</p>
                 {savedInvoice.billDiscount > 0 && (
                   <p className="text-success print:text-black">
-                    {savedInvoice.subtotal > 0
-                      ? `${Math.round(
-                          (savedInvoice.billDiscount / savedInvoice.subtotal) *
-                            100
-                        )}% discount`
-                      : "Discount"}
-                    : −{formatInr(savedInvoice.billDiscount)}
+                    Disc: −{formatInr(savedInvoice.billDiscount)}
                   </p>
                 )}
                 {savedInvoice.loyaltyRedeem > 0 && (
-                  <p>
-                    Loyalty redeem: −{formatInr(savedInvoice.loyaltyRedeem)}
-                  </p>
+                  <p>Loyalty: −{formatInr(savedInvoice.loyaltyRedeem)}</p>
                 )}
                 <p className="text-success print:text-black">
-                  Points earned this bill: +{savedInvoice.pointsEarned || 0} pts
+                  Pts +{savedInvoice.pointsEarned || 0}
                 </p>
-                <p className="text-lg font-bold">
-                  You pay: {formatInr(savedInvoice.grandTotal)}
+                <p className="receipt-total text-lg font-bold">
+                  Pay: {formatInr(savedInvoice.grandTotal)}
                 </p>
               </div>
               {savedInvoice.loyaltyRedeem === 0 && (
@@ -960,7 +965,7 @@ export default function BillingPage() {
                   visit (1 pt ≈ ₹1 off).
                 </p>
               )}
-              <p className="text-center text-xs text-muted print:text-black">
+              <p className="text-center text-[9px] text-muted print:text-black">
                 Thank you · Sivakasi
               </p>
 
@@ -977,7 +982,7 @@ export default function BillingPage() {
                   onClick={() => printReceipt("thermal")}
                   className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-navy"
                 >
-                  Thermal 80mm
+                  Thermal 55mm
                 </button>
                 <button
                   type="button"
@@ -1017,21 +1022,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          #billing-print-root, #billing-print-root * { visibility: visible !important; }
-          #billing-print-root {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            max-width: none !important;
-            box-shadow: none !important;
-            background: white !important;
-          }
-        }
-      `}</style>
+      <style>{billPrintCss({ rootId: "billing-print-root", mode: printMode })}</style>
     </div>
   );
 }
