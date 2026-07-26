@@ -3,7 +3,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatInr, maskPhone } from "@/lib/api";
 import { getShopSettings } from "@/lib/shop-settings";
-import { upiPayLink } from "@/lib/upi";
+import { normalizeUpiId, upiPayLink } from "@/lib/upi";
+import { PayActions } from "@/components/PayActions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +25,16 @@ export default async function PayInvoicePage({
   ]);
   if (!inv) notFound();
 
-  const upi = shop.upiId
+  const upiId = normalizeUpiId(shop.upiId || "");
+  const upiLink = upiId
     ? upiPayLink({
-        upiId: shop.upiId,
+        upiId,
         payeeName: shop.name || "Shop",
         amount: inv.grandTotal,
         note: inv.number,
       })
     : "";
+  const amountLabel = formatInr(inv.grandTotal);
 
   return (
     <div className="min-h-screen bg-atmosphere px-4 py-10">
@@ -49,25 +52,21 @@ export default async function PayInvoicePage({
           Amount to pay
         </p>
         <p className="mt-1 text-4xl font-bold tabular-nums text-navy">
-          {formatInr(inv.grandTotal)}
+          {amountLabel}
         </p>
 
-        {upi ? (
-          <a
-            href={upi}
-            className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-amber px-6 py-3.5 text-base font-semibold text-white hover:bg-amber-bright"
-          >
-            Pay with UPI (GPay / PhonePe / Paytm)
-          </a>
+        {upiLink && upiId ? (
+          <PayActions
+            upiLink={upiLink}
+            upiId={upiId}
+            amountLabel={amountLabel}
+            payeeName={shop.name || "Shop"}
+          />
         ) : (
           <p className="mt-8 rounded-xl bg-amber/10 px-4 py-3 text-sm text-amber">
             UPI ID not set. Contact the shop to pay.
           </p>
         )}
-
-        <p className="mt-4 text-xs text-muted">
-          Opens your UPI app on mobile. On desktop, scan/pay from your phone.
-        </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
