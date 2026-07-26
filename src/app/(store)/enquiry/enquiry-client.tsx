@@ -6,6 +6,10 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { discountPercent, formatInr } from "@/lib/data";
 import { useEnquiryCart } from "@/lib/enquiry-cart";
 import { fieldErrorsFromZod, useCsrf } from "@/lib/use-csrf";
+import {
+  applyBindingDetails,
+  useCustomerAutofill,
+} from "@/lib/use-customer-autofill";
 import { enquiryDraftSchema } from "@/lib/validation";
 import { CartIcon, QtyStepper, TrashIcon } from "@/components/QtyStepper";
 import {
@@ -112,6 +116,7 @@ export default function EnquiryClient({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [emailLocked, setEmailLocked] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
@@ -124,6 +129,29 @@ export default function EnquiryClient({
   const [challengeId, setChallengeId] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const lastLookedUpPin = useRef("");
+
+  const { lookingUp: lookingUpCustomer, hint: customerHint } =
+    useCustomerAutofill(phone, withCsrf, csrfReady, (profile) => {
+      if (!profile) {
+        setEmailLocked(false);
+        return;
+      }
+      if (profile.name) setName(profile.name.slice(0, 30));
+      if (profile.email) {
+        setEmail(profile.email.slice(0, 120));
+        setEmailLocked(profile.emailLocked);
+        setOtpSent(false);
+        setChallengeId("");
+        setOtp("");
+      } else {
+        setEmailLocked(false);
+      }
+      if (profile.whatsapp) setWhatsapp(profile.whatsapp);
+      if (profile.pincode && /^\d{6}$/.test(profile.pincode)) {
+        lastLookedUpPin.current = "";
+        setPincode(profile.pincode);
+      }
+    });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [enquiryNumber, setEnquiryNumber] = useState("");
@@ -378,6 +406,10 @@ export default function EnquiryClient({
       const res = await fetch("/api/otp/send", init);
       const data = await res.json();
       if (!res.ok) {
+        applyBindingDetails(data, {
+          setEmail: (v) => setEmail(v.slice(0, 120)),
+          setEmailLocked,
+        });
         setError(data?.error?.message || "Could not send OTP");
         setFieldErrors(fieldErrorsFromZod(data?.error || {}));
         return null;
@@ -453,6 +485,10 @@ export default function EnquiryClient({
       const res = await fetch("/api/enquiries", init);
       const data = await res.json();
       if (!res.ok) {
+        applyBindingDetails(data, {
+          setEmail: (v) => setEmail(v.slice(0, 120)),
+          setEmailLocked,
+        });
         const msg = data?.error?.message || "Submit failed";
         setError(msg);
         const fe = fieldErrorsFromZod(data?.error || {});
@@ -774,11 +810,17 @@ export default function EnquiryClient({
                 error={fieldErrors.phone}
                 required
               />
+              {lookingUpCustomer ? (
+                <p className="text-xs text-muted">Loading saved details…</p>
+              ) : customerHint ? (
+                <p className="text-xs text-success">{customerHint}</p>
+              ) : null}
               <TextField
                 label="Email *"
                 type="email"
                 value={email}
                 onChange={(e) => {
+                  if (emailLocked) return;
                   setEmail(e.target.value.slice(0, 120));
                   setOtpSent(false);
                   setChallengeId("");
@@ -787,9 +829,25 @@ export default function EnquiryClient({
                 error={fieldErrors.email}
                 autoComplete="email"
                 maxLength={120}
-                placeholder="OTP will be sent here"
+                placeholder={
+                  emailLocked
+                    ? "Registered email for this mobile"
+                    : "OTP will be sent here"
+                }
                 required
+                readOnly={emailLocked}
+                className={
+                  emailLocked
+                    ? "cursor-not-allowed bg-surface-muted/80 text-navy"
+                    : undefined
+                }
               />
+              {emailLocked ? (
+                <p className="text-xs text-muted">
+                  Email is locked to this mobile. Change the mobile number to use
+                  a different email.
+                </p>
+              ) : null}
               <PhoneField
                 label="WhatsApp (optional)"
                 value={whatsapp}

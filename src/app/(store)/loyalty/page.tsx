@@ -2,6 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { fieldErrorsFromZod, useCsrf } from "@/lib/use-csrf";
+import {
+  applyBindingDetails,
+  useCustomerAutofill,
+} from "@/lib/use-customer-autofill";
 import { emailSchema, phone10Schema } from "@/lib/validation";
 import { PhoneField, TextField } from "@/components/forms/Fields";
 import { OtpVerifyBlock } from "@/components/forms/OtpVerifyBlock";
@@ -10,6 +14,7 @@ export default function LoyaltyPage() {
   const { withCsrf, ready } = useCsrf();
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [emailLocked, setEmailLocked] = useState(false);
   const [invoice, setInvoice] = useState("");
   const [otp, setOtp] = useState("");
   const [challengeId, setChallengeId] = useState("");
@@ -23,6 +28,22 @@ export default function LoyaltyPage() {
     rewardMessage: string;
   } | null>(null);
   const [error, setError] = useState("");
+
+  const { lookingUp: lookingUpCustomer, hint: customerHint } =
+    useCustomerAutofill(phone, withCsrf, ready, (profile) => {
+      if (!profile) {
+        setEmailLocked(false);
+        return;
+      }
+      if (profile.email) {
+        setEmail(profile.email.slice(0, 120));
+        setEmailLocked(profile.emailLocked);
+        setChallengeId("");
+        setOtp("");
+      } else {
+        setEmailLocked(false);
+      }
+    });
 
   async function requestOtp() {
     setError("");
@@ -53,6 +74,10 @@ export default function LoyaltyPage() {
       const res = await fetch("/api/otp/send", init);
       const json = await res.json();
       if (!res.ok) {
+        applyBindingDetails(json, {
+          setEmail: (v) => setEmail(v.slice(0, 120)),
+          setEmailLocked,
+        });
         setError(json?.error?.message || "Could not send OTP");
         setFieldErrors(fieldErrorsFromZod(json?.error || {}));
         return null;
@@ -132,8 +157,8 @@ export default function LoyaltyPage() {
           Loyalty points
         </h1>
         <p className="mt-2 text-muted">
-          Points are linked to your mobile and email (one email per number).
-          Verify with email OTP or your invoice number.
+          Enter your mobile — saved email loads automatically. Verify with email
+          OTP or your invoice number.
         </p>
 
         {!data ? (
@@ -152,23 +177,46 @@ export default function LoyaltyPage() {
               error={fieldErrors.phone}
               required
             />
+            {lookingUpCustomer ? (
+              <p className="text-xs text-muted">Loading saved details…</p>
+            ) : customerHint ? (
+              <p className="text-xs text-success">{customerHint}</p>
+            ) : null}
 
             {!invoice.trim() && (
-              <TextField
-                label="Email *"
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value.slice(0, 120));
-                  setChallengeId("");
-                  setOtp("");
-                }}
-                error={fieldErrors.email}
-                autoComplete="email"
-                maxLength={120}
-                placeholder="Must match the email linked to this mobile"
-                required
-              />
+              <>
+                <TextField
+                  label="Email *"
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    if (emailLocked) return;
+                    setEmail(e.target.value.slice(0, 120));
+                    setChallengeId("");
+                    setOtp("");
+                  }}
+                  error={fieldErrors.email}
+                  autoComplete="email"
+                  maxLength={120}
+                  placeholder={
+                    emailLocked
+                      ? "Registered email for this mobile"
+                      : "Must match the email linked to this mobile"
+                  }
+                  required
+                  readOnly={emailLocked}
+                  className={
+                    emailLocked
+                      ? "cursor-not-allowed bg-surface-muted/80 text-navy"
+                      : undefined
+                  }
+                />
+                {emailLocked ? (
+                  <p className="text-xs text-muted">
+                    Email is locked to this mobile.
+                  </p>
+                ) : null}
+              </>
             )}
 
             <TextField
@@ -226,11 +274,10 @@ export default function LoyaltyPage() {
                 setData(null);
                 setOtp("");
                 setChallengeId("");
-                setLoading(false);
               }}
-              className="mt-8 rounded-full border border-white/30 px-5 py-2 text-sm font-semibold"
+              className="mt-8 rounded-full bg-white/15 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/25"
             >
-              Check another
+              Check another number
             </button>
           </div>
         )}

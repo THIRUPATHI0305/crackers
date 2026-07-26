@@ -76,7 +76,8 @@ export function offerHref(offer: {
   if (type === "COMBO" && offer.products && offer.products.length > 0) {
     return `/products?ids=${offer.products.map((p) => encodeURIComponent(p.id)).join(",")}`;
   }
-  return `/offers#${offer.id}`;
+  // FESTIVAL / ADVERTISEMENT / flat-percent: catalogue already shows list prices
+  return "/products";
 }
 
 export function formatInr(amount: number) {

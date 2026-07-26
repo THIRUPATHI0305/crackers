@@ -15,7 +15,8 @@ export function apiError(
   code: ErrorCode,
   message: string,
   status: number,
-  fields?: Record<string, string[]>
+  fields?: Record<string, string[]>,
+  details?: Record<string, unknown>
 ) {
   return NextResponse.json(
     {
@@ -23,6 +24,7 @@ export function apiError(
         code,
         message,
         fields: fields ?? {},
+        ...(details ? { details } : {}),
         requestId: `req_${Date.now()}`,
       },
     },

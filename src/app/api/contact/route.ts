@@ -24,7 +24,10 @@ export async function POST(req: Request) {
 
     const binding = await assertPhoneEmailBinding(body.phone, body.email);
     if (!binding.ok) {
-      return apiError("BUSINESS_RULE", binding.message, 400);
+      return apiError("BUSINESS_RULE", binding.message, 400, undefined, {
+        registeredEmail: binding.registeredEmail,
+        registeredPhone: binding.registeredPhone,
+      });
     }
 
     const otp = await consumeOtpChallenge({

@@ -56,12 +56,14 @@ export default async function ProductDetailPage({
             <p className="text-xs font-semibold uppercase tracking-wide text-amber">
               {product.category} · {product.code}
             </p>
-            <Link
-              href={`/brands/${product.brandSlug}`}
-              className="mt-1.5 inline-flex rounded-full border border-navy/15 bg-navy/5 px-2.5 py-0.5 text-[11px] font-bold text-navy"
-            >
-              {product.brand}
-            </Link>
+            {product.brand && product.brandSlug ? (
+              <Link
+                href={`/brands/${product.brandSlug}`}
+                className="mt-1.5 inline-flex rounded-full border border-navy/15 bg-navy/5 px-2.5 py-0.5 text-[11px] font-bold text-navy"
+              >
+                {product.brand}
+              </Link>
+            ) : null}
             <h1 className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold leading-tight text-navy sm:text-3xl">
               {product.name}
             </h1>

@@ -2,6 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { fieldErrorsFromZod, useCsrf } from "@/lib/use-csrf";
+import {
+  applyBindingDetails,
+  useCustomerAutofill,
+} from "@/lib/use-customer-autofill";
 import { contactDraftSchema } from "@/lib/validation";
 import {
   PhoneField,
@@ -15,6 +19,7 @@ export function ContactForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [emailLocked, setEmailLocked] = useState(false);
   const [message, setMessage] = useState("");
   const [otp, setOtp] = useState("");
   const [challengeId, setChallengeId] = useState("");
@@ -23,6 +28,24 @@ export function ContactForm() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const { lookingUp: lookingUpCustomer, hint: customerHint } =
+    useCustomerAutofill(phone, withCsrf, ready, (profile) => {
+      if (!profile) {
+        setEmailLocked(false);
+        return;
+      }
+      if (profile.name) setName(profile.name.slice(0, 30));
+      if (profile.email) {
+        setEmail(profile.email.slice(0, 120));
+        setEmailLocked(profile.emailLocked);
+        setOtpSent(false);
+        setChallengeId("");
+        setOtp("");
+      } else {
+        setEmailLocked(false);
+      }
+    });
 
   async function requestOtp() {
     setError("");
@@ -51,6 +74,10 @@ export function ContactForm() {
       const res = await fetch("/api/otp/send", init);
       const data = await res.json();
       if (!res.ok) {
+        applyBindingDetails(data, {
+          setEmail: (v) => setEmail(v.slice(0, 120)),
+          setEmailLocked,
+        });
         setError(data?.error?.message || "Could not send OTP");
         setFieldErrors(fieldErrorsFromZod(data?.error || {}));
         return null;
@@ -110,6 +137,10 @@ export function ContactForm() {
       const res = await fetch("/api/contact", init);
       const data = await res.json();
       if (!res.ok) {
+        applyBindingDetails(data, {
+          setEmail: (v) => setEmail(v.slice(0, 120)),
+          setEmailLocked,
+        });
         const msg = data?.error?.message || "Could not send message";
         setError(msg);
         const fe = fieldErrorsFromZod(data?.error || {});
@@ -163,11 +194,17 @@ export function ContactForm() {
         error={fieldErrors.phone}
         required
       />
+      {lookingUpCustomer ? (
+        <p className="text-xs text-muted">Loading saved details…</p>
+      ) : customerHint ? (
+        <p className="text-xs text-success">{customerHint}</p>
+      ) : null}
       <TextField
         label="Email *"
         type="email"
         value={email}
         onChange={(e) => {
+          if (emailLocked) return;
           setEmail(e.target.value.slice(0, 120));
           setOtpSent(false);
           setChallengeId("");
@@ -176,9 +213,24 @@ export function ContactForm() {
         error={fieldErrors.email}
         autoComplete="email"
         maxLength={120}
-        placeholder="OTP will be sent here"
+        placeholder={
+          emailLocked
+            ? "Registered email for this mobile"
+            : "OTP will be sent here"
+        }
         required
+        readOnly={emailLocked}
+        className={
+          emailLocked
+            ? "cursor-not-allowed bg-surface-muted/80 text-navy"
+            : undefined
+        }
       />
+      {emailLocked ? (
+        <p className="text-xs text-muted">
+          Email is locked to this mobile. Change the mobile to use another email.
+        </p>
+      ) : null}
       <TextAreaField
         label="How can we help? *"
         rows={5}
