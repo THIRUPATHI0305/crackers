@@ -461,11 +461,6 @@ function EnquiryBillModal({
               <span className="text-muted print:text-black">Status:</span>{" "}
               {enquiry.status}
             </p>
-            {upiId ? (
-              <p>
-                <span className="text-muted print:text-black">UPI:</span> {upiId}
-              </p>
-            ) : null}
           </div>
 
           <table className="w-full border-t border-b border-border text-sm print:border-black">

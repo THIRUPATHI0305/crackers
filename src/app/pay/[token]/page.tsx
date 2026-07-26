@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatInr, maskPhone } from "@/lib/api";
 import { getShopSettings } from "@/lib/shop-settings";
-import { normalizeUpiId, upiPayLink } from "@/lib/upi";
+import { normalizeUpiId, upiAppLinks } from "@/lib/upi";
 import { PayActions } from "@/components/PayActions";
 
 export const dynamic = "force-dynamic";
@@ -26,14 +26,14 @@ export default async function PayInvoicePage({
   if (!inv) notFound();
 
   const upiId = normalizeUpiId(shop.upiId || "");
-  const upiLink = upiId
-    ? upiPayLink({
+  const links = upiId
+    ? upiAppLinks({
         upiId,
         payeeName: shop.name || "Shop",
         amount: inv.grandTotal,
         note: inv.number,
       })
-    : "";
+    : null;
   const amountLabel = formatInr(inv.grandTotal);
 
   return (
@@ -55,16 +55,15 @@ export default async function PayInvoicePage({
           {amountLabel}
         </p>
 
-        {upiLink && upiId ? (
+        {links ? (
           <PayActions
-            upiLink={upiLink}
-            upiId={upiId}
+            links={links}
             amountLabel={amountLabel}
             payeeName={shop.name || "Shop"}
           />
         ) : (
           <p className="mt-8 rounded-xl bg-amber/10 px-4 py-3 text-sm text-amber">
-            UPI ID not set. Contact the shop to pay.
+            UPI payments are not set up yet. Contact the shop to pay.
           </p>
         )}
 

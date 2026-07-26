@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PHONE_UPI_PROVIDERS, phoneBasedUpiId } from "@/lib/upi";
 
 type Shop = {
   name: string;
@@ -62,6 +63,10 @@ export default function AdminSettingsPage() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [upiPhone, setUpiPhone] = useState("");
+  const [upiProvider, setUpiProvider] = useState<string>(
+    PHONE_UPI_PROVIDERS[0].suffix
+  );
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -72,6 +77,12 @@ export default function AdminSettingsPage() {
             headerBanner: "",
             ...data.shop,
           });
+          const digits = String(data.shop.phone || "").replace(/\D/g, "");
+          const ten =
+            digits.length === 12 && digits.startsWith("91")
+              ? digits.slice(2)
+              : digits.slice(-10);
+          if (/^[6-9]\d{9}$/.test(ten)) setUpiPhone(ten);
         }
         if (data.loyalty) setLoyalty(data.loyalty);
         if (data.otp) {
@@ -217,15 +228,78 @@ export default function AdminSettingsPage() {
               placeholder="Digits only, with country code"
             />
           </label>
-          <label className="text-sm font-semibold text-navy">
-            UPI ID (GPay / PhonePe)
-            <input
-              value={shop.upiId || ""}
-              onChange={(e) => setShop({ ...shop, upiId: e.target.value })}
-              className="mt-1.5 w-full rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm outline-none focus:border-amber"
-              placeholder="yourshop@oksbi"
-            />
-          </label>
+          <div className="sm:col-span-2 space-y-3 rounded-xl border border-border bg-surface-muted/50 p-4">
+            <p className="text-sm font-semibold text-navy">
+              Shop receive UPI (hidden from customers)
+            </p>
+            <p className="text-xs text-muted">
+              Customers only see “Pay with GPay / PhonePe / Paytm” — your UPI ID
+              is never shown on the pay page. Money still goes to this ID.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+              <label className="text-xs font-semibold text-navy">
+                Mobile number
+                <input
+                  value={upiPhone}
+                  onChange={(e) =>
+                    setUpiPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                  }
+                  className="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-amber"
+                  placeholder="10-digit mobile linked to UPI"
+                  inputMode="numeric"
+                />
+              </label>
+              <label className="text-xs font-semibold text-navy">
+                App
+                <select
+                  value={upiProvider}
+                  onChange={(e) => setUpiProvider(e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-amber"
+                >
+                  {PHONE_UPI_PROVIDERS.map((p) => (
+                    <option key={p.id} value={p.suffix}>
+                      {p.label} (@{p.suffix})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const built = phoneBasedUpiId(upiPhone, upiProvider);
+                    if (!built) {
+                      setError(
+                        "Enter a valid 10-digit mobile to build phone UPI ID"
+                      );
+                      return;
+                    }
+                    setError("");
+                    setShop({ ...shop, upiId: built });
+                  }}
+                  className="w-full rounded-full bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy-soft"
+                >
+                  Use phone UPI
+                </button>
+              </div>
+            </div>
+            <label className="block text-xs font-semibold text-navy">
+              Or paste any UPI ID
+              <input
+                value={shop.upiId || ""}
+                onChange={(e) => setShop({ ...shop, upiId: e.target.value })}
+                className="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-2.5 font-mono text-sm outline-none focus:border-amber"
+                placeholder="9876543210@ybl or shop@oksbi"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setShop({ ...shop, upiId: "" })}
+              className="text-xs font-semibold text-amber hover:underline"
+            >
+              Clear UPI (disable online pay links)
+            </button>
+          </div>
           <label className="text-sm font-semibold text-navy">
             Email
             <input

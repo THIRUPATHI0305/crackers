@@ -117,11 +117,8 @@ export function invoiceWhatsApp(opts: {
   }
 
   if (opts.upiId) {
-    text += `\n\n💳 *Pay via UPI* (GPay / PhonePe / Paytm)`;
-    text += `\nUPI ID: *${opts.upiId}*`;
-    text += `\nAmount: ₹${amount}`;
-    text += `\n\n📱 *Phone:* tap to open pay page (opens UPI app)`;
-    text += `\n💻 *Laptop:* copy UPI ID above, or open page for QR`;
+    text += `\n\n💳 *Pay ₹${amount}* via GPay / PhonePe / Paytm`;
+    text += `\nTap this link on your *phone* — it opens your UPI app:`;
     text += `\n${payUrl}`;
   }
 
